@@ -1,2 +1,2 @@
-# src/path_planning/__init__.py
+"""Path Planning Library."""
 __version__ = "0.1.0"
