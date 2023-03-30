@@ -2,7 +2,7 @@
 name = "path-planning"
 version = "0.1.0"
 description = ""
-authors = ["Nathan Faber <ntfaber@gmail.com>"]
+authors = ["Nathan Faber <ntfaber@gmail.com>", "Kate Mackowiak <kmackowiak@olin.edu>", "Bill Fan <wfan@olin.edu>"]
 readme = "README.md"
 packages = [{include = "path_planning", from = "src"}]
 

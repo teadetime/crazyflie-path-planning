@@ -9,6 +9,7 @@ nox.options.sessions = "lint", "tests", "pyright"
 @nox.session(python=[python_version])
 def tests(session: Session):
     args = session.posargs
+    session.install("pytest-mock")
     session.run("poetry", "install", external=True)
     session.run("pytest", *args)
 
