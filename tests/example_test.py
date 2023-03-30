@@ -1,4 +1,7 @@
+from unittest.mock import Mock
+
 import pytest
+from pytest_mock import MockFixture
 
 from path_planning import sandbox
 
@@ -9,6 +12,12 @@ def simple_csv() -> str:
     return "tests/assets/simple.csv"
 
 
-def test_main_succeeds():
-    sandbox.main()
+@pytest.fixture
+def mock_requests_get(mocker: MockFixture) -> Mock:
+    return Mock()
+
+
+def test_main_succeeds() -> None:
+    print("Within a test")
+    sandbox.main(5)
     assert True

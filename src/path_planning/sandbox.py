@@ -1,3 +1,2 @@
-
-def main():
-    print(f"Hello!")
+def main(variable: int) -> None:
+    print(f"Hello!{variable}")

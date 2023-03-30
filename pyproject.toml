@@ -9,10 +9,15 @@ packages = [{include = "path_planning", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 numpy = "^1.24.2"
+nox-poetry = "^1.0.2"
 
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
+pytest-mock = "^3.10.0"
+flake8 = "^6.0.0"
+pyright = "^1.1.301"
+flake8-annotations = "^3.0.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -20,3 +25,22 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 sandbox = "path_planning.sandbox:main"
+
+[tool.pyright]
+include = ["src", "tests"]
+stubPath = ""
+venvPath = "."
+venv = ".venv"
+basic = ["tests"]
+strict = ["src"]
+reportMissingParameterType = true
+reportMissingTypeArgument = true
+reportUnknownArgumentType = "warning"
+reportUnknownParameterType = "warning"
+reportUnknownVariableType = "warning"
+reportUnusedClass = "warning"
+reportUnusedImport = "warning"
+reportUnusedFunction = "warning"
+reportUnusedVariable = "warning"
+reportUnnecessaryCast = "warning"
+reportUnnecessaryComparison = "warning"
