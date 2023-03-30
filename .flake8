@@ -1,7 +1,7 @@
 # .flake8
 [flake8]
 select = ANN,B,B9,BLK,C,D,E,F,I,W
-ignore = E203,W503,
+ignore = E203,W503,ANN101,ANN102
 per-file-ignores =
     tests/*:S101,ANN
     noxfile.py:ANN
