@@ -10,19 +10,27 @@ Getting started developing:
 
     `curl -sSL https://install.python-poetry.org | python3 -`
 
-3. Install Python ^3.10 (recommended via `pyenv`)
+3. Install pre-commit for precommit hooks
 
-4. Clone the 
+    `pip install --upgrade pre-commit`
+
+4. Install Python ^3.10 (recommended via `pyenv`)
+
+5. Clone the [repo](https://github.com/teadetime/crazyflie-path-planning)
 
     `git clone git@github.com:teadetime/crazyflie-path-planning.git`
 
-5. Within the repo
+6. Within the repo
 
     `poetry install`
 
+7. Install the pre-commit hook
+
+    `pre-commit install`
+
 6. Run nox
 
-    `nox -r` 
+    `nox -r`
 
     to run linting: `nox -rs lint`
 
