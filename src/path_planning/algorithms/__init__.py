@@ -1,5 +1,5 @@
 """Algorithms module."""
 
-from .path_planner import TrajectoryPlanner
+from .path_planner import PathPlanner
 
-__all__ = ["TrajectoryPlanner"]
+__all__ = ["PathPlanner"]

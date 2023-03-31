@@ -10,9 +10,10 @@ Getting started developing:
 
     `curl -sSL https://install.python-poetry.org | python3 -`
 
-3. Install pre-commit for precommit hooks
+3. Install pre-commit for precommit hooks and nox-poetry
 
     `pip install --upgrade pre-commit`
+    `pip install nox-poetry`
 
 4. Install Python ^3.10 (recommended via `pyenv`)
 
@@ -24,9 +25,12 @@ Getting started developing:
 
     `poetry install`
 
-7. Install the pre-commit hook
+7. Install the pre-commit hook and test it
 
     `pre-commit install`
+
+
+    `pre-commit run --all-files`
 
 6. Run nox
 
