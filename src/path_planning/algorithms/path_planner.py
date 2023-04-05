@@ -25,12 +25,28 @@ class Goal:
         self.label = label
 
 
+class Agent:
+    """Agent class."""
+
+    def __init__(self, name: str) -> None:
+        """Initialize Agent."""
+        self.name = name
+        self.pos_x = 0
+        self.pos_y = 0
+        self.pos_z = 0
+        self.battery = None
+
+
 class PathPlanner(ABC):
     """PathPlanner ABC."""
 
     @staticmethod
     @abstractmethod
-    def generate(omap: OMap, goals: dict[str, list[Goal]]) -> Tuple[Path, go.Figure]:
+    def generate(
+        omap: OMap,
+        goals: dict[Agent, list[Goal]],
+        override_starting_pos: None | dict[Agent, Point] = None,
+    ) -> Tuple[Path, go.Figure]:
         """Abstract Base Class for a PathPlanner."""
         pass
 
