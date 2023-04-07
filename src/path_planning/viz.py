@@ -11,7 +11,7 @@ def create_omap_trace(omap: OMap, properties: dict | None = None) -> go.Scatter3
     """Create Occupancy Map Plotly trace."""
     obstacles = omap.obstacles_in_global()
     if properties is None:
-        marker = dict(size=5, symbol="square", opacity=0.25)
+        marker = dict(size=5, symbol="square", color="red", opacity=0.25)
         properties = dict(opacity=1, mode="markers", marker=marker, name="Obstacles")
 
     omap_plot = go.Scatter3d(
@@ -63,7 +63,7 @@ def create_plot_update(omap: OMap) -> dict:
     scene = (
         dict(
             camera=dict(
-                eye=dict(x=0.0, y=-0.01, z=10)
+                eye=dict(x=0.0, y=-0.01, z=1000)
             ),  # Weirdly tuned for aspect ration, should consider a param of the omap
             xaxis=dict(
                 nticks=omap.map.shape[0],
