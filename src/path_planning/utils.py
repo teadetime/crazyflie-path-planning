@@ -14,3 +14,31 @@ Points = Annotated[
 Path = Annotated[
     npt.NDArray[TypeVar("DType", bound=np.number)], Literal["N", 4]
 ]  # N x (xyz)
+
+
+class Goal:
+    """Wrapper for goal position with priority."""
+
+    def __init__(self, position: Point, priority: int, label: str = "") -> None:
+        """Initialize Goal.
+
+        Args:
+            position: Position
+            priority: Integer priority. 0 is highest priority
+            label: Goal label for plotting
+        """
+        self.pos = position
+        self.priority = priority
+        self.label = label
+
+
+class Agent:
+    """Agent class."""
+
+    def __init__(self, name: str) -> None:
+        """Initialize Agent."""
+        self.name = name
+        self.pos_x = 0
+        self.pos_y = 0
+        self.pos_z = 0
+        self.battery = None
