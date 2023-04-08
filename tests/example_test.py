@@ -23,5 +23,5 @@ def mock_requests_get(mocker: MockFixture) -> Mock:
 def test_main_succeeds() -> None:
     """Example test."""
     print("Within a test")
-    sandbox.main(5)
+    sandbox.main()
     assert True
