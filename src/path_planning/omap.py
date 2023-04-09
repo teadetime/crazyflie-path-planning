@@ -29,7 +29,7 @@ class OMap:
         z_size: float = 1.0,
         origin: Point | None = None,
         cell_size: float = 0.05,
-        bbox: Points | None = None,
+        bbox_tuple: Tuple[Point, Point] | None = None,
     ) -> None:
         """Initialize Occupancy Map."""
         if origin is None:
@@ -37,6 +37,65 @@ class OMap:
 
         if origin[0] >= x_size or origin[1] >= y_size or origin[2] >= z_size:
             raise ValueError("Specify an origin within the Occupancy Grid")
+
+        self.bbox_tuple = bbox_tuple
+        if bbox_tuple is not None:
+            # TODO: enforce bottom left and top right?
+            if len(bbox_tuple) != 2:
+                ValueError(
+                    f"Bbox tuple should have max two opposing corners to make\
+                          a bounding box, got {len(bbox_tuple)} corners"
+                )
+            self.bbox = np.stack(
+                [
+                    bbox_tuple[0],
+                    bbox_tuple[1],
+                    np.array(
+                        [
+                            bbox_tuple[0][0],
+                            bbox_tuple[0][1],
+                            bbox_tuple[1][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[1][0],
+                            bbox_tuple[1][1],
+                            bbox_tuple[0][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[0][0],
+                            bbox_tuple[1][1],
+                            bbox_tuple[1][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[0][0],
+                            bbox_tuple[1][1],
+                            bbox_tuple[0][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[1][0],
+                            bbox_tuple[0][1],
+                            bbox_tuple[1][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[1][0],
+                            bbox_tuple[0][1],
+                            bbox_tuple[0][2],
+                        ]
+                    ),
+                ]
+            )
+        else:
+            self.bbox = np.empty((1, 3))
 
         x_cells = ceil(x_size / cell_size)
         y_cells = ceil(y_size / cell_size)
@@ -51,7 +110,6 @@ class OMap:
 
         self.origin = origin
         self.cell_size = cell_size
-        self.bbox = bbox
         self.map = np.zeros((x_cells, y_cells, z_cells), dtype=bool)
 
     @property
@@ -90,7 +148,7 @@ class OMap:
         self.map[(cells[0], cells[1], cells[2])] = state
 
     def get_points_global(self, points: Points, use_bbox: bool = False) -> GridPoints:
-        """Get global frame poitns occupancy."""
+        """Get global frame points occupancy."""
         if use_bbox and self.bbox is not None:
             query = np.concatenate([points + c for c in self.bbox])
         else:
@@ -132,3 +190,15 @@ class OMap:
             query = np.concatenate([points + c for c in self.bbox])
 
         return not self.get_points_global(query).any()
+
+    def _cells_around_point(self, point: Point) -> Points:
+        """Use built in bounding box tuple to fill in cells around point."""
+        one_corner_cell = self._glbl_pts_to_cells(point + self.bbox[0])
+        opposite_corner_cell = self._glbl_pts_to_cells(point + self.bbox[1]) + 1
+
+        points = np.mgrid[
+            one_corner_cell[0] : opposite_corner_cell[0],
+            one_corner_cell[1] : opposite_corner_cell[1],
+            one_corner_cell[2] : opposite_corner_cell[2],
+        ]
+        return points

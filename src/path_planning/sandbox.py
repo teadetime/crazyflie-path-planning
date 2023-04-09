@@ -9,7 +9,14 @@ from path_planning.omap import OMap
 
 def main() -> None:
     """Main function within Sandbox."""
-    test_omap = OMap(30, 20, 6, np.array([0.0, 0.0, 0]), cell_size=0.25)
+    test_omap = OMap(
+        30,
+        20,
+        6,
+        np.array([0.0, 0.0, 0]),
+        cell_size=0.25,
+        bbox_tuple=(np.array([-10, -10, -20]), np.array([10, 10, 20])),
+    )
 
     points = np.array([[0, 0, 0], [0.1, 0, 0]])
     test_omap.set_points_global(points)
