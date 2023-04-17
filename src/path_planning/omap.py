@@ -95,7 +95,7 @@ class OMap:
                 ]
             )
         else:
-            self.bbox = np.empty((1, 3))
+            self.bbox = None
 
         x_cells = ceil(x_size / cell_size)
         y_cells = ceil(y_size / cell_size)
@@ -124,7 +124,9 @@ class OMap:
         """Convert cells (Nx3) to global points."""
         return (cells * self.cell_size - self.origin).transpose()
 
-    def _glbl_pts_to_cells(self, points: Points, within_grid: bool = True) -> Cells:
+    def _glbl_pts_to_cells(
+        self, points: Points, within_grid: bool = True, trim_within_grid: bool = False
+    ) -> Cells:
         """Conver global points to omap cells."""
         # TODO: Raise error on too big of query
         transformed = points + self.origin
@@ -135,6 +137,8 @@ class OMap:
                 raise ValueError(
                     "Specified global points lay outside the occupancy map"
                 )
+        if trim_within_grid is True:
+            scaled = np.clip(scaled, np.array([0, 0, 0]), np.array(self.map.shape))
         return scaled
 
     def obstacles_in_global(self) -> Points:
@@ -193,12 +197,40 @@ class OMap:
 
     def _cells_around_point(self, point: Point) -> Points:
         """Use built in bounding box tuple to fill in cells around point."""
-        one_corner_cell = self._glbl_pts_to_cells(point + self.bbox[0])
-        opposite_corner_cell = self._glbl_pts_to_cells(point + self.bbox[1]) + 1
+        if self.bbox is not None:
+            one_corner_cell = self._glbl_pts_to_cells(
+                point + self.bbox[0], False, trim_within_grid=True
+            )
+            opposite_corner_cell = (
+                self._glbl_pts_to_cells(
+                    point + self.bbox[1], False, trim_within_grid=True
+                )
+                + 1
+            )
+            print(f"one_corner: {one_corner_cell}")
+            print(f"other_corner: {opposite_corner_cell}")
+            points = np.mgrid[
+                one_corner_cell[0] : opposite_corner_cell[0],
+                one_corner_cell[1] : opposite_corner_cell[1],
+                one_corner_cell[2] : opposite_corner_cell[2],
+            ]
 
-        points = np.mgrid[
-            one_corner_cell[0] : opposite_corner_cell[0],
-            one_corner_cell[1] : opposite_corner_cell[1],
-            one_corner_cell[2] : opposite_corner_cell[2],
-        ]
-        return points
+            # Turn into N x 3
+            return points.reshape(3, (int(points.size / 3))).transpose()
+        else:
+            add_dim = np.expand_dims(point, 0)
+            return self._glbl_pts_to_cells(add_dim, False, trim_within_grid=True)
+
+    def point_in_collision_omap(self, point: Point) -> bool:
+        """Check if points around a global point collide with obstacle map."""
+        cells = self._cells_around_point(point)
+        return bool(self.map[(cells[0], cells[1], cells[2])].any())
+
+    def points_in_collision(self, pt_a: Point, pt_b: Point) -> bool:
+        """Check if two points collide."""
+        cells_a = self._cells_around_point(pt_a)
+        cells_b = self._cells_around_point(pt_b)
+
+        print(f"cells_a: {cells_a.shape} ", cells_a)
+        print(f"cells_b: {cells_b.shape}", cells_b)
+        return (cells_a == cells_b[:, None]).all(-1).any()

@@ -1,9 +1,10 @@
 """Conflict-Based-Search implementation using A* as a backbone."""
 
 
-from typing import Dict, List, NamedTuple, Set, Tuple
+from queue import PriorityQueue
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
-
+import numpy as np
 import plotly.graph_objects as go
 
 from .path_planner import Agent, AgentPaths, Goal, PathPlanner
@@ -29,7 +30,7 @@ class Constraint(NamedTuple):
     time: int
 
 
-class Node(NamedTuple):
+class CBSNode(NamedTuple):
     """Node for CBS."""
 
     constraint_set: set[Constraint]
@@ -41,43 +42,175 @@ class CBS(PathPlanner):
     """Conflict Based Search PathPlanner."""
 
     @staticmethod
-    def single_agent_astar(
-        omap: OMap, goals: List[Goal]
-    ) -> Tuple[Path, float]:  # pyright: ignore[reportGeneralTypeIssues]
+    def single_agent_astar(  # noqa: C901
+        omap: OMap,
+        start: Point,
+        goals: List[Goal],
+        existing_path: Path | None = None,
+        constraint: Constraint | None = None,
+    ) -> Tuple[Path, float] | None:  # pyright: ignore[reportGeneralTypeIssues]
         """Run Astar for a single agent, returning path and cost."""
-        pass
+        came_from: dict[bytes, Optional[bytes]] = {}
+        cost_so_far: dict[bytes, float] = {}
+        time: dict[bytes, int] = {}
+
+        def get_neighbors_cells(
+            time: int, pt: Point, constraint: Constraint | None = None
+        ) -> List[Point]:
+            # Cell is the size of a the drone doing a very simple astar
+            points = [pt]
+            if constraint is not None and time == constraint.time:
+                # Only give options that don't violate the contraint
+                for x in range(-1, 2):
+                    for y in range(-1, 2):
+                        for z in range(-1, 2):
+                            point = pt + np.array([x, y, z])
+                            if point == constraint.vertex:
+                                continue
+                            if omap.point_in_collision_omap(point) is False:
+                                points.append(point)
+            else:
+                for x in range(-1, 2):
+                    for y in range(-1, 2):
+                        for z in range(-1, 2):
+                            if x == 0 and y == 0 and z == 0:
+                                continue
+                            point = pt + np.array([x, y, z])
+                            if omap.point_in_collision_omap(point) is False:
+                                points.append(point)
+            return points
+
+        def heuristic(pos: Point, goal: Point) -> float:
+            return float(np.linalg.norm(goal - pos))
+
+        def reconstruct_path(start: Point, goal: Point) -> Path | None:
+            current = goal.tobytes()
+            start_bytes: bytes = start.tobytes()
+            path: Path
+            if goal not in came_from:  # no path was found
+                return None
+            while current != start_bytes and current is not None:
+                path = np.append(
+                    path, np.append(np.frombuffer(current), cost_so_far[current])
+                )
+                current = came_from[current]
+
+            path = np.append(path, np.append(start, cost_so_far[start_bytes]))
+            path = np.flipud(path)
+            return path
+
+        if existing_path is None:
+            start_byte = start.tobytes()
+            came_from[start_byte] = None
+            cost_so_far[start_byte] = 0
+            time[start_byte] = 0
+
+            frontier: PriorityQueue = PriorityQueue()
+            frontier.put((0, start_byte))
+
+            goal = goals[0]
+
+            while not frontier.empty():
+                current_bytes = frontier.get()
+                current_point = np.frombuffer(current_bytes)
+                curr_time = time[current_bytes]
+                if current_point == goal.pos:
+                    path = reconstruct_path(start, current_point)
+                    if path is not None:
+                        return (path, path[-1])
+                    break
+
+                new_neighbors = get_neighbors_cells(
+                    curr_time + 1, current_point, constraint
+                )  # constraint should be None
+
+                for next in new_neighbors:
+                    new_cost = cost_so_far[current_bytes] + float(
+                        np.linalg.norm((next, current_point))
+                    )
+                    if next not in cost_so_far or new_cost < cost_so_far[next]:
+                        next_bytes = next.tobytes()
+                        cost_so_far[next_bytes] = new_cost
+                        time[next_bytes] = current_bytes + 1
+                        priority = new_cost + heuristic(next, goal.pos)
+                        frontier.put((priority, next_bytes))
+                        came_from[next_bytes] = current_bytes
+            return None
+
+        else:
+            # Error if there isn't a constraint
+            if constraint is None or existing_path is None:
+                raise ValueError("Specify constraint if using an existing path")
+            # Start the timestep before the constraint and append things appropriately
+            starting_time = constraint.time
+
+            path_pre_constriant = existing_path[:starting_time, :]
+            starting_point: Point = existing_path[starting_time, :-1]
+
+            start_byte = starting_point.tobytes()
+            came_from[start_byte] = None
+            cost_so_far[start_byte] = existing_path[starting_time, -1]
+            time[start_byte] = starting_time
+
+            frontier: PriorityQueue = PriorityQueue()
+            frontier.put((existing_path[starting_time, -1], start_byte))
+            goal = goals[0]
+
+            while not frontier.empty():
+                current_bytes = frontier.get()
+                current_point = np.frombuffer(current_bytes)
+                curr_time = time[current_bytes]
+                if current_point == goal.pos:
+                    path = reconstruct_path(starting_point, current_point)
+                    if path is not None:
+                        return (np.vstack((path_pre_constriant, path)), path[-1])
+                    break
+
+                new_neighbors = get_neighbors_cells(
+                    curr_time + 1, current_point, constraint
+                )
+
+                for next in new_neighbors:
+                    new_cost = cost_so_far[current_bytes] + float(
+                        np.linalg.norm((next, current_point))
+                    )
+                    if next not in cost_so_far or new_cost < cost_so_far[next]:
+                        next_bytes = next.tobytes()
+                        cost_so_far[next_bytes] = new_cost
+                        time[next_bytes] = current_bytes + 1
+                        priority = new_cost + heuristic(next, goal.pos)
+                        frontier.put((priority, next_bytes))
+                        came_from[next_bytes] = current_bytes
+            return None
 
     @staticmethod
     def validate_solution(omap: OMap, solution: Solution) -> Conflict | None:
         """Returns Conflicts within an AgentPaths."""
         agent_paths_cells = {}
         for agent, path in solution.items():
-            agent_paths_cells[agent] = omap._glbl_pts_to_cells(path[0])
+            agent_paths_cells[agent] = path[0][:, :-1]  # Cut off cost
 
         agents = solution.keys()
         curr_timestep = 0
         max_len = max(agent_paths_cells.values(), key=len)
         while curr_timestep < max_len:
-            # TODO: add support for Points dictionary and then stack all the values
-            # use: any(np.equal(a,[1,2]).all(1)) to look for match in numpy array
-
-            coordinates: Dict[Agent, Point] = {}
+            time_coordinates: Dict[Agent, Point] = {}
             for agent in agents:
                 path = agent_paths_cells[agent]
+                # Use the last agent position if it is done moving
                 if len(path) < curr_timestep + 1:
                     pt = path[-1]
                 else:
                     pt = path[curr_timestep]
-                # TODO: points = omap.(get points) and use points instead of pt
-                existing_values = list(coordinates.values())
+                existing_values = list(time_coordinates.values())
                 if pt in existing_values:
-                    # TODO: Create new constraints with agent and other agent
-                    other_agent = list(coordinates.keys())[existing_values.index(pt)]
-
+                    other_agent = list(time_coordinates.keys())[
+                        existing_values.index(pt)
+                    ]
                     return Conflict({agent, other_agent}, pt, curr_timestep)
                 else:
-                    coordinates[agent] = pt
-        # No conflicts if this point reached
+                    time_coordinates[agent] = pt
+        # No conflicts
         return None
 
     @staticmethod
@@ -94,15 +227,28 @@ class CBS(PathPlanner):
 
         # Relies heavily on pseudocode:
         # https://www.sciencedirect.com/science/article/pii/S0004370214001386
+
+        starting_pos: Dict[Agent, Point] = {}
+        if override_starting_pos is not None:
+            starting_pos = override_starting_pos
+        else:
+            for agent in goals.keys():
+                starting_pos[agent] = agent.pos
+
         initial_constraint: Set[Constraint] = set()
         initial_solution: Solution = {}
         for agent, goal_list in goals.items():
-            initial_solution[agent] = CBS.single_agent_astar(omap, goal_list)
+            single_a_result = CBS.single_agent_astar(
+                omap, starting_pos[agent], goal_list
+            )
+            if single_a_result is None:
+                raise RuntimeError("Unable to find astar path")
+            initial_solution[agent] = single_a_result
 
         initial_cost = _get_cost(initial_solution)
-        initial_node = Node(initial_constraint, initial_solution, initial_cost)
-        explored_node_set: Set[Node] = set()  # avoid duplicates
-        explore_list: List[Node] = [initial_node]  # "OPEN" in paper
+        initial_node = CBSNode(initial_constraint, initial_solution, initial_cost)
+        explored_node_set: Set[CBSNode] = set()  # avoid duplicates
+        explore_list: List[CBSNode] = [initial_node]  # "OPEN" in paper
 
         while explore_list != []:
             # Sort the open list
@@ -120,8 +266,13 @@ class CBS(PathPlanner):
                     Constraint(agent, conflict.vertex, conflict.time)
                 }  # + cur_node.constraints
                 solution = cur_node.solution
-                solution[agent] = CBS.single_agent_astar(omap, goals[agent])
+                single_a_result = CBS.single_agent_astar(
+                    omap, starting_pos[agent], goals[agent]
+                )
+                if single_a_result is None:
+                    raise RuntimeError("Unable to find astar path")
+                solution[agent] = single_a_result
                 cost = _get_cost(solution)
-                explore_list.append(Node(constraint_set, solution, cost))
+                explore_list.append(CBSNode(constraint_set, solution, cost))
 
             explore_list.sort(key=lambda a: a.cost)
