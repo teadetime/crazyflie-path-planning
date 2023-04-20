@@ -224,7 +224,8 @@ class OMap:
     def point_in_collision_omap(self, point: Point) -> bool:
         """Check if points around a global point collide with obstacle map."""
         cells = self._cells_around_point(point)
-        return bool(self.map[(cells[0], cells[1], cells[2])].any())
+        collision = self.map[(list(cells[:, 0]), list(cells[:, 1]), list(cells[:, 2]))]
+        return bool(collision.any())
 
     def points_in_collision(self, pt_a: Point, pt_b: Point) -> bool:
         """Check if two points collide."""

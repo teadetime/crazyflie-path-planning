@@ -48,36 +48,29 @@ class CBS(PathPlanner):
         goals: List[Goal],
         existing_path: Path | None = None,
         constraint: Constraint | None = None,
-    ) -> Tuple[Path, float] | None:  # pyright: ignore[reportGeneralTypeIssues]
+    ) -> Tuple[Path, float] | None:
         """Run Astar for a single agent, returning path and cost."""
         came_from: dict[bytes, Optional[bytes]] = {}
         cost_so_far: dict[bytes, float] = {}
         time: dict[bytes, int] = {}
 
         def get_neighbors_cells(
-            time: int, pt: Point, constraint: Constraint | None = None
+            time: int, pt: Point, cnst: Constraint | None = None
         ) -> List[Point]:
             # Cell is the size of a the drone doing a very simple astar
-            points = [pt]
-            if constraint is not None and time == constraint.time:
-                # Only give options that don't violate the contraint
-                for x in range(-1, 2):
-                    for y in range(-1, 2):
-                        for z in range(-1, 2):
-                            point = pt + np.array([x, y, z])
-                            if point == constraint.vertex:
+            points = []
+            pt_int = pt.astype(np.int64)
+            for x in range(-1, 2):
+                for y in range(-1, 2):
+                    for z in range(-1, 2):
+                        point = pt_int + np.array([x, y, z], dtype=np.int64)
+                        if ((point >= omap.map.shape) | (point < ([0, 0, 0]))).any():
+                            continue
+                        if cnst is not None and time == cnst.time:
+                            if not np.array((point - cnst.vertex), dtype=bool).any():
                                 continue
-                            if omap.point_in_collision_omap(point) is False:
-                                points.append(point)
-            else:
-                for x in range(-1, 2):
-                    for y in range(-1, 2):
-                        for z in range(-1, 2):
-                            if x == 0 and y == 0 and z == 0:
-                                continue
-                            point = pt + np.array([x, y, z])
-                            if omap.point_in_collision_omap(point) is False:
-                                points.append(point)
+                        if not bool(omap.map[(point[0], point[1], point[2])].any()):
+                            points.append(point.astype(np.float64))
             return points
 
         def heuristic(pos: Point, goal: Point) -> float:
@@ -86,17 +79,22 @@ class CBS(PathPlanner):
         def reconstruct_path(start: Point, goal: Point) -> Path | None:
             current = goal.tobytes()
             start_bytes: bytes = start.tobytes()
-            path: Path
-            if goal not in came_from:  # no path was found
+            path: Path = np.ones((1, 4))
+            if goal.tobytes() not in came_from:  # no path was found
                 return None
             while current != start_bytes and current is not None:
-                path = np.append(
-                    path, np.append(np.frombuffer(current), cost_so_far[current])
+                path = np.vstack(
+                    (
+                        np.append(
+                            np.frombuffer(current).astype(np.int64),
+                            cost_so_far[current],
+                        ),
+                        path,
+                    )
                 )
                 current = came_from[current]
 
-            path = np.append(path, np.append(start, cost_so_far[start_bytes]))
-            path = np.flipud(path)
+            path = np.vstack((np.append(start, cost_so_far[start_bytes]), path[:-1, :]))
             return path
 
         if existing_path is None:
@@ -111,10 +109,10 @@ class CBS(PathPlanner):
             goal = goals[0]
 
             while not frontier.empty():
-                current_bytes = frontier.get()
+                _, current_bytes = frontier.get()
                 current_point = np.frombuffer(current_bytes)
                 curr_time = time[current_bytes]
-                if current_point == goal.pos:
+                if not np.array((current_point - goal.pos), dtype=bool).any():
                     path = reconstruct_path(start, current_point)
                     if path is not None:
                         return (path, path[-1])
@@ -128,10 +126,13 @@ class CBS(PathPlanner):
                     new_cost = cost_so_far[current_bytes] + float(
                         np.linalg.norm((next, current_point))
                     )
-                    if next not in cost_so_far or new_cost < cost_so_far[next]:
-                        next_bytes = next.tobytes()
+                    next_bytes = next.tobytes()
+                    if (
+                        next_bytes not in cost_so_far
+                        or new_cost < cost_so_far[next_bytes]
+                    ):
                         cost_so_far[next_bytes] = new_cost
-                        time[next_bytes] = current_bytes + 1
+                        time[next_bytes] = curr_time + 1
                         priority = new_cost + heuristic(next, goal.pos)
                         frontier.put((priority, next_bytes))
                         came_from[next_bytes] = current_bytes
@@ -157,10 +158,10 @@ class CBS(PathPlanner):
             goal = goals[0]
 
             while not frontier.empty():
-                current_bytes = frontier.get()
+                _, current_bytes = frontier.get()
                 current_point = np.frombuffer(current_bytes)
                 curr_time = time[current_bytes]
-                if current_point == goal.pos:
+                if not np.array((current_point - goal.pos), dtype=bool).any():
                     path = reconstruct_path(starting_point, current_point)
                     if path is not None:
                         return (np.vstack((path_pre_constriant, path)), path[-1])
@@ -177,7 +178,7 @@ class CBS(PathPlanner):
                     if next not in cost_so_far or new_cost < cost_so_far[next]:
                         next_bytes = next.tobytes()
                         cost_so_far[next_bytes] = new_cost
-                        time[next_bytes] = current_bytes + 1
+                        time[next_bytes] = curr_time + 1
                         priority = new_cost + heuristic(next, goal.pos)
                         frontier.put((priority, next_bytes))
                         came_from[next_bytes] = current_bytes

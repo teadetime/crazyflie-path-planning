@@ -2,10 +2,9 @@
 
 import numpy as np
 
-# import plotly.graph_objects as go
-
-# from path_planning import viz
+from path_planning.algorithms.cbs import CBS, Constraint
 from path_planning.omap import OMap
+from path_planning.utils import Agent, Goal
 
 
 def main() -> None:
@@ -15,7 +14,7 @@ def main() -> None:
         2,
         2,
         np.array([0.0, 0.0, 0]),
-        cell_size=0.1,
+        cell_size=0.2,
         # bbox_tuple=(np.array([-.10, -.10, -.20]), np.array([.10, .10, .20])),
     )
 
@@ -35,11 +34,34 @@ def main() -> None:
     # fig.update_layout(dict1=update_dictionary)
     # fig.show()
 
-    point1 = np.array([0.2, 0.2, 0.1])
-    cells = test_omap._cells_around_point(point1)
-    print(cells.shape)
+    # point1 = np.array([0.2, 0.2, 0.1])
+    # cells = test_omap._cells_around_point(point1)
+    # print(cells.shape)
     # point1 = np.array([.2,.2,.1])
     # point2 = np.array([.55,.55,.20])
 
     # results = test_omap.points_in_collision(point1, point2)
     # print(results)
+
+    # TESTING CBS AND ASTAR
+    start_pt = np.array([0.0, 0.0, 0.1])
+
+    start_cell = test_omap._glbl_pts_to_cells(start_pt).astype(np.int64)
+
+    goal_pt = np.array([0.6, 0.6, 0.1])
+    goal_cell = test_omap._glbl_pts_to_cells(goal_pt).astype(np.int64)
+    print(f"Start: {start_cell}, End: {goal_cell}")
+    goal = Goal(position=goal_cell)
+
+    avoid_pt = (1, 1, 0)
+    # test_omap.map[avoid_pt] = True
+
+    constraint = Constraint(Agent(name="test"), np.array(avoid_pt), 1)
+    result = CBS.single_agent_astar(
+        test_omap, start_cell, [goal], constraint=constraint, existing_path=None
+    )
+
+    if result:
+        print(result[0])
+    else:
+        print("No path found!")

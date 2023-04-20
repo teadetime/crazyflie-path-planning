@@ -19,7 +19,7 @@ Path = Annotated[
 class Goal:
     """Wrapper for goal position with priority."""
 
-    def __init__(self, position: Point, priority: int, label: str = "") -> None:
+    def __init__(self, position: Point, priority: int = 0, label: str = "") -> None:
         """Initialize Goal.
 
         Args:
