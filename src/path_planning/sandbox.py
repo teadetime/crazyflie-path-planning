@@ -56,11 +56,25 @@ def main() -> None:
     avoid_pt = (1, 1, 0)
     # test_omap.map[avoid_pt] = True
 
-    constraint = Constraint(Agent(name="test"), np.array(avoid_pt), 1)
+    constraint = Constraint(
+        Agent(name="test", pos=np.array([0, 0, 0])), np.array(avoid_pt), 1
+    )
     result = CBS.single_agent_astar(
         test_omap, start_cell, [goal], constraint=constraint, existing_path=None
     )
 
+    ag1 = Agent(name="test1", pos=np.array([0, 0, 0]))  # global starting position
+    ag2 = Agent(name="test2", pos=np.array([1, 2, 0]))
+
+    # Goals in cells
+    goals = {
+        ag1: [Goal(np.array((2, 2, 2), dtype=np.int64))],
+        ag2: [Goal(np.array((5, 3, 3), dtype=np.int64))],
+    }
+    result = CBS.generate(
+        test_omap,
+        goals,
+    )
     if result:
         print(result[0])
     else:

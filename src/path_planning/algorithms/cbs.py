@@ -2,7 +2,7 @@
 
 
 from queue import PriorityQueue
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, FrozenSet, List, NamedTuple, Optional, Set, Tuple
 
 import numpy as np
 import plotly.graph_objects as go
@@ -33,7 +33,7 @@ class Constraint(NamedTuple):
 class CBSNode(NamedTuple):
     """Node for CBS."""
 
-    constraint_set: set[Constraint]
+    constraint_set: frozenset[Constraint]
     solution: Solution
     cost: float
 
@@ -236,7 +236,7 @@ class CBS(PathPlanner):
             for agent in goals.keys():
                 starting_pos[agent] = agent.pos
 
-        initial_constraint: Set[Constraint] = set()
+        initial_constraint: FrozenSet[Constraint] = frozenset()
         initial_solution: Solution = {}
         for agent, goal_list in goals.items():
             single_a_result = CBS.single_agent_astar(
@@ -254,6 +254,7 @@ class CBS(PathPlanner):
         while explore_list != []:
             # Sort the open list
             cur_node = explore_list.pop(-1)  # Pop last element (lowest cost)
+            print(cur_node)
             explored_node_set.add(cur_node)
 
             conflict = CBS.validate_solution(omap, cur_node.solution)
