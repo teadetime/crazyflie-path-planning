@@ -2,7 +2,7 @@
 
 
 from queue import PriorityQueue
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, FrozenSet, List, NamedTuple, Optional, Set, Tuple
 
 import numpy as np
 import plotly.graph_objects as go
@@ -33,7 +33,7 @@ class Constraint(NamedTuple):
 class CBSNode(NamedTuple):
     """Node for CBS."""
 
-    constraint_set: set[Constraint]
+    constraint_set: frozenset[Constraint]
     solution: Solution
     cost: float
 
@@ -193,7 +193,7 @@ class CBS(PathPlanner):
 
         agents = solution.keys()
         curr_timestep = 0
-        max_len = max(agent_paths_cells.values(), key=len)
+        max_len = len(max(agent_paths_cells.values(), key=len))
         while curr_timestep < max_len:
             time_coordinates: Dict[Agent, Point] = {}
             for agent in agents:
@@ -204,6 +204,7 @@ class CBS(PathPlanner):
                 else:
                     pt = path[curr_timestep]
                 existing_values = list(time_coordinates.values())
+                print(f"pt: {pt}, {existing_values}")
                 if pt in existing_values:
                     other_agent = list(time_coordinates.keys())[
                         existing_values.index(pt)
@@ -236,7 +237,7 @@ class CBS(PathPlanner):
             for agent in goals.keys():
                 starting_pos[agent] = agent.pos
 
-        initial_constraint: Set[Constraint] = set()
+        initial_constraint: FrozenSet[Constraint] = frozenset()
         initial_solution: Solution = {}
         for agent, goal_list in goals.items():
             single_a_result = CBS.single_agent_astar(
@@ -248,13 +249,15 @@ class CBS(PathPlanner):
 
         initial_cost = _get_cost(initial_solution)
         initial_node = CBSNode(initial_constraint, initial_solution, initial_cost)
-        explored_node_set: Set[CBSNode] = set()  # avoid duplicates
+        # explored_node_set: List[CBSNode] = list()  # avoid duplicates
         explore_list: List[CBSNode] = [initial_node]  # "OPEN" in paper
 
         while explore_list != []:
             # Sort the open list
             cur_node = explore_list.pop(-1)  # Pop last element (lowest cost)
-            explored_node_set.add(cur_node)
+
+            # TODO: keep track of where you've gone so you don't do it again
+            # explored_node_set.append(cur_node)
 
             conflict = CBS.validate_solution(omap, cur_node.solution)
 

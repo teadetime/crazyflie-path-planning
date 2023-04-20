@@ -35,7 +35,7 @@ class Goal:
 class Agent:
     """Agent class."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, pos: Point) -> None:
         """Initialize Agent."""
         self.name = name
         self.pos: Point = np.array((0, 0, 0))
