@@ -197,17 +197,21 @@ class CBS(PathPlanner):
         while curr_timestep < max_len:
             time_coordinates: Dict[Agent, Point] = {}
             for agent in agents:
+                print("checking agent ", agent.name)
                 path = agent_paths_cells[agent]
                 # Use the last agent position if it is done moving
                 if len(path) < curr_timestep + 1:
                     pt = path[-1]
                 else:
                     pt = path[curr_timestep]
-                existing_values = list(time_coordinates.values())
-                print(f"pt: {pt}, {existing_values}")
-                if pt in existing_values:
+                print("current point ", pt)
+                existing_values = np.array(list(time_coordinates.values()))
+                print(existing_values)
+                if len(existing_values) > 0 and np.any(
+                    np.all(pt == existing_values, axis=1)
+                ):
                     other_agent = list(time_coordinates.keys())[
-                        existing_values.index(pt)
+                        np.where(existing_values == pt)[0][0]
                     ]
                     return Conflict({agent, other_agent}, pt, curr_timestep)
                 else:
@@ -260,15 +264,15 @@ class CBS(PathPlanner):
             # explored_node_set.append(cur_node)
 
             conflict = CBS.validate_solution(omap, cur_node.solution)
+            print(conflict)
 
             if conflict is None:  # Solution had been found
                 # Create agentPaths and Figure
                 agent_paths = {k: v[0] for k, v in cur_node.solution.items()}
                 return (agent_paths, go.Figure())
             for agent in conflict.agent_set:
-                constraint_set = {
-                    Constraint(agent, conflict.vertex, conflict.time)
-                }  # + cur_node.constraints
+                constraint = Constraint(agent, conflict.vertex, conflict.time)
+                constraint_set = {constraint}  # + cur_node.constraints
                 solution = cur_node.solution
                 single_a_result = CBS.single_agent_astar(
                     omap, starting_pos[agent], goals[agent]
