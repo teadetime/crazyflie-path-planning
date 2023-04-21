@@ -193,20 +193,25 @@ class CBS(PathPlanner):
 
         agents = solution.keys()
         curr_timestep = 0
-        max_len = max(agent_paths_cells.values(), key=len)
+        max_len = len(max(agent_paths_cells.values(), key=len))
         while curr_timestep < max_len:
             time_coordinates: Dict[Agent, Point] = {}
             for agent in agents:
+                print("checking agent ", agent.name)
                 path = agent_paths_cells[agent]
                 # Use the last agent position if it is done moving
                 if len(path) < curr_timestep + 1:
                     pt = path[-1]
                 else:
                     pt = path[curr_timestep]
-                existing_values = list(time_coordinates.values())
-                if pt in existing_values:
+                print("current point ", pt)
+                existing_values = np.array(list(time_coordinates.values()))
+                print(existing_values)
+                if len(existing_values) > 0 and np.any(
+                    np.all(pt == existing_values, axis=1)
+                ):
                     other_agent = list(time_coordinates.keys())[
-                        existing_values.index(pt)
+                        np.where(existing_values == pt)[0][0]
                     ]
                     return Conflict({agent, other_agent}, pt, curr_timestep)
                 else:
@@ -248,25 +253,22 @@ class CBS(PathPlanner):
 
         initial_cost = _get_cost(initial_solution)
         initial_node = CBSNode(initial_constraint, initial_solution, initial_cost)
-        explored_node_set: Set[CBSNode] = set()  # avoid duplicates
         explore_list: List[CBSNode] = [initial_node]  # "OPEN" in paper
 
         while explore_list != []:
             # Sort the open list
             cur_node = explore_list.pop(-1)  # Pop last element (lowest cost)
-            print(cur_node)
-            explored_node_set.add(cur_node)
-
+            print(cur_node.solution, "SOL")
             conflict = CBS.validate_solution(omap, cur_node.solution)
+            print(conflict)
 
             if conflict is None:  # Solution had been found
                 # Create agentPaths and Figure
                 agent_paths = {k: v[0] for k, v in cur_node.solution.items()}
                 return (agent_paths, go.Figure())
             for agent in conflict.agent_set:
-                constraint_set = {
-                    Constraint(agent, conflict.vertex, conflict.time)
-                }  # + cur_node.constraints
+                constraint = Constraint(agent, conflict.vertex, conflict.time)
+                constraint_set = {constraint}  # + cur_node.constraints
                 solution = cur_node.solution
                 single_a_result = CBS.single_agent_astar(
                     omap, starting_pos[agent], goals[agent]

@@ -1,7 +1,8 @@
 """Sandbox environment."""
 
 import numpy as np
-
+from path_planning import viz
+import plotly.graph_objects as go
 from path_planning.algorithms.cbs import CBS, Constraint
 from path_planning.omap import OMap
 from path_planning.utils import Agent, Goal
@@ -10,8 +11,8 @@ from path_planning.utils import Agent, Goal
 def main() -> None:
     """Main function within Sandbox."""
     test_omap = OMap(
-        3,
-        2,
+        10,
+        10,
         2,
         np.array([0.0, 0.0, 0]),
         cell_size=0.2,
@@ -20,7 +21,7 @@ def main() -> None:
 
     # points = np.array([[0, 0, 0], [0.1, 0, 0]])
     # test_omap.set_points_global(points)
-    # test_omap.set_rectangles(np.array([0, 3, 0]), np.array([15, 6, 5]))
+    test_omap.set_rectangles(np.array([3, 3, 0]), np.array([6, 6, 1.9]))
     # test_omap.set_rectangles(np.array([0, 9, 0]), np.array([22, 12, 5]))
     # test_omap.set_rectangles(np.array([0, 15, 0]), np.array([25, 18, 5]))
 
@@ -64,18 +65,38 @@ def main() -> None:
     )
 
     ag1 = Agent(name="test1", pos=np.array([0, 0, 0]))  # global starting position
-    ag2 = Agent(name="test2", pos=np.array([1, 2, 0]))
+    ag2 = Agent(name="test2", pos=np.array([0.4, 0.4, 0]))
 
     # Goals in cells
     goals = {
-        ag1: [Goal(np.array((2, 2, 2), dtype=np.int64))],
-        ag2: [Goal(np.array((5, 3, 3), dtype=np.int64))],
+        ag1: [Goal(np.array((2, 2, 0), dtype=np.int64))],
+        ag2: [Goal(np.array((0, 0, 0), dtype=np.int64))],
     }
-    result = CBS.generate(
-        test_omap,
-        goals,
-    )
-    if result:
-        print(result[0])
-    else:
-        print("No path found!")
+
+    path_1 = CBS.single_agent_astar(omap=test_omap, start=ag1.pos, goals=goals[ag1])
+    path_2 = CBS.single_agent_astar(omap=test_omap, start=ag2.pos, goals=goals[ag2])
+
+    solution = {ag1: path_1, ag2: path_2}
+
+    conflicts = CBS.validate_solution(test_omap, solution)
+    print(conflicts)
+
+    # result = CBS.generate(
+    #     test_omap,
+    #     goals,
+    # )
+    # if result:
+    #     print(result[0])
+    #     paths = result
+
+    # fig = go.Figure()
+    # fig.add_trace(omap_trace)
+    # omap_trace = viz.create_omap_trace(test_omap)
+    # update_dictionary = viz.create_plot_update(test_omap)
+    # fig.update_layout(dict1=update_dictionary)
+    # for path in paths:
+    #     traj_trace = viz.create_points_trace(path)
+    #     fig.add_trace(traj_trace)
+    # fig.show()
+    # else:
+    #     print("No path found!")
