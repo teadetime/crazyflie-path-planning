@@ -1,6 +1,8 @@
 """Conflict-Based-Search implementation using A* as a backbone."""
 
 
+from copy import copy
+from operator import attrgetter
 from queue import PriorityQueue
 from typing import Dict, FrozenSet, List, NamedTuple, Optional, Set, Tuple
 
@@ -17,7 +19,7 @@ Solution = Dict[Agent, Tuple[Path, float]]
 class Conflict(NamedTuple):
     """Conflict for CBS."""
 
-    agent_set: Set[Agent]
+    agent_set: List[Agent]
     vertex: Point
     time: int
 
@@ -33,7 +35,7 @@ class Constraint(NamedTuple):
 class CBSNode(NamedTuple):
     """Node for CBS."""
 
-    constraint_set: frozenset[Constraint]
+    constraint_set: Constraint
     solution: Solution
     cost: float
 
@@ -93,8 +95,8 @@ class CBS(PathPlanner):
                     )
                 )
                 current = came_from[current]
-            if np.all(start == (0, 0, 0)):
-                path = np.vstack((np.append(start, cost_so_far[start_bytes]), path))
+            path = np.vstack((np.append(start, cost_so_far[start_bytes]), path))
+            print(path[:-1])
             return path[:-1]
 
         if existing_path is None:
@@ -122,7 +124,7 @@ class CBS(PathPlanner):
                 )  # constraint should be None
                 for next_point in new_neighbors:
                     new_cost = cost_so_far[current_bytes] + float(
-                        np.linalg.norm((next_point, current_point))
+                        np.linalg.norm((next_point - current_point))
                     )
                     next_bytes = next_point.tobytes()
                     if (
@@ -141,12 +143,13 @@ class CBS(PathPlanner):
             if constraint is None or existing_path is None:
                 raise ValueError("Specify constraint if using an existing path")
             # Start the timestep before the constraint and append things appropriately
-            starting_time = constraint.time
+            starting_time = constraint.time - 1
 
             path_pre_constriant = existing_path[:starting_time, :]
             starting_point: Point = existing_path[starting_time, :-1]
 
             start_byte = starting_point.tobytes()
+
             came_from[start_byte] = None
             cost_so_far[start_byte] = existing_path[starting_time, -1]
             time[start_byte] = starting_time
@@ -171,13 +174,13 @@ class CBS(PathPlanner):
 
                 for next_point in new_neighbors:
                     new_cost = cost_so_far[current_bytes] + float(
-                        np.linalg.norm((next_point, current_point))
+                        np.linalg.norm((next_point - current_point))
                     )
+                    next_bytes = next_point.tobytes()
                     if (
-                        next_point not in cost_so_far
-                        or new_cost < cost_so_far[next_point]
+                        next_bytes not in cost_so_far
+                        or new_cost < cost_so_far[next_bytes]
                     ):
-                        next_bytes = next_point.tobytes()
                         cost_so_far[next_bytes] = new_cost
                         time[next_bytes] = curr_time + 1
                         priority = new_cost + heuristic(next_point, goal.pos)
@@ -209,10 +212,11 @@ class CBS(PathPlanner):
                 if len(existing_values) > 0 and np.any(
                     np.all(pt == existing_values, axis=1)
                 ):
+                    print("COnflict!")
                     other_agent = list(time_coordinates.keys())[
                         np.where(existing_values == pt)[0][0]
                     ]
-                    return Conflict({agent, other_agent}, pt, curr_timestep)
+                    return Conflict([agent, other_agent], pt, curr_timestep)
                 else:
                     time_coordinates[agent] = pt
             curr_timestep += 1
@@ -229,7 +233,7 @@ class CBS(PathPlanner):
 
         def _get_cost(soln: Solution) -> float:
             """Sum costs of paths."""
-            return sum(j for _, j in soln.values())
+            return sum(j[-1] for _, j in soln.values())
 
         # Relies heavily on pseudocode:
         # https://www.sciencedirect.com/science/article/pii/S0004370214001386
@@ -271,15 +275,19 @@ class CBS(PathPlanner):
                 return (agent_paths, go.Figure())
             for agent in conflict.agent_set:
                 constraint = Constraint(agent, conflict.vertex, conflict.time)
-                constraint_set = {constraint}  # + cur_node.constraints
-                solution = cur_node.solution
+                # constraint_set = {constraint}  # + cur_node.constraints
+                solution = copy(cur_node.solution)
                 single_a_result = CBS.single_agent_astar(
-                    omap, starting_pos[agent], goals[agent]
+                    omap,
+                    starting_pos[agent],
+                    goals[agent],
+                    existing_path=cur_node.solution[agent][0],
+                    constraint=constraint,
                 )
                 if single_a_result is None:
                     raise RuntimeError("Unable to find astar path")
                 solution[agent] = single_a_result
                 cost = _get_cost(solution)
-                explore_list.append(CBSNode(constraint_set, solution, cost))
+                explore_list.append(CBSNode(constraint, solution, cost))
 
-            explore_list.sort(key=lambda a: a.cost)
+            explore_list.sort(key=attrgetter("cost"))
