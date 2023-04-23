@@ -38,5 +38,5 @@ class Agent:
     def __init__(self, name: str, pos: Point) -> None:
         """Initialize Agent."""
         self.name = name
-        self.pos: Point = np.array((0, 0, 0))
+        self.pos: Point = pos
         self.battery = None
