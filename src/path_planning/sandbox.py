@@ -1,9 +1,10 @@
 """Sandbox environment."""
 
 import numpy as np
-from path_planning import viz
-import plotly.graph_objects as go
-from path_planning.algorithms.cbs import CBS, Constraint
+
+# from path_planning import viz
+# import plotly.graph_objects as go
+from path_planning.algorithms.cbs import CBS  # , Constraint
 from path_planning.omap import OMap
 from path_planning.utils import Agent, Goal
 
@@ -45,27 +46,26 @@ def main() -> None:
     # print(results)
 
     # TESTING CBS AND ASTAR
-    start_pt = np.array([0.0, 0.0, 0.1])
+    # start_pt = np.array([0.0, 0.0, 0.1])
 
-    start_cell = test_omap._glbl_pts_to_cells(start_pt).astype(np.int64)
+    # start_cell = test_omap._glbl_pts_to_cells(start_pt).astype(np.int64)
 
-    goal_pt = np.array([0.6, 0.6, 0.1])
-    goal_cell = test_omap._glbl_pts_to_cells(goal_pt).astype(np.int64)
-    print(f"Start: {start_cell}, End: {goal_cell}")
-    goal = Goal(position=goal_cell)
+    # goal_pt = np.array([0.6, 0.6, 0.1])
+    # goal_cell = test_omap._glbl_pts_to_cells(goal_pt).astype(np.int64)
+    # goal = Goal(position=goal_cell)
 
-    avoid_pt = (1, 1, 0)
-    # test_omap.map[avoid_pt] = True
+    # avoid_pt = (1, 1, 0)
+    # # test_omap.map[avoid_pt] = True
 
-    constraint = Constraint(
-        Agent(name="test", pos=np.array([0, 0, 0])), np.array(avoid_pt), 1
-    )
-    result = CBS.single_agent_astar(
-        test_omap, start_cell, [goal], constraint=constraint, existing_path=None
-    )
+    # constraint = Constraint(
+    #     Agent(name="test", pos=np.array([0, 0, 0])), np.array(avoid_pt), 1
+    # )
+    # result = CBS.single_agent_astar(
+    #     test_omap, start_cell, [goal], constraint=constraint, existing_path=None
+    # )
 
-    ag1 = Agent(name="test1", pos=np.array([0, 0, 0]))  # global starting position
-    ag2 = Agent(name="test2", pos=np.array([0.4, 0.4, 0]))
+    ag1 = Agent(name="test1", pos=np.array([0, 1, 0]))  # global starting position
+    ag2 = Agent(name="test2", pos=np.array([6, 6, 0]))
 
     # Goals in cells
     goals = {
@@ -78,8 +78,10 @@ def main() -> None:
 
     solution = {ag1: path_1, ag2: path_2}
 
-    conflicts = CBS.validate_solution(test_omap, solution)
-    print(conflicts)
+    print(solution)
+
+    # conflicts = CBS.validate_solution(test_omap, solution)
+    # print(conflicts)
 
     # result = CBS.generate(
     #     test_omap,

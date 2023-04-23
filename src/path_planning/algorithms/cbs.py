@@ -93,12 +93,12 @@ class CBS(PathPlanner):
                     )
                 )
                 current = came_from[current]
-
-            path = np.vstack((np.append(start, cost_so_far[start_bytes]), path[:-1, :]))
-            return path
+            if np.all(start == (0, 0, 0)):
+                path = np.vstack((np.append(start, cost_so_far[start_bytes]), path))
+            return path[:-1]
 
         if existing_path is None:
-            start_byte = start.tobytes()
+            start_byte = (start.astype(np.float64)).tobytes()
             came_from[start_byte] = None
             cost_so_far[start_byte] = 0
             time[start_byte] = 0
@@ -117,23 +117,21 @@ class CBS(PathPlanner):
                     if path is not None:
                         return (path, path[-1])
                     break
-
                 new_neighbors = get_neighbors_cells(
                     curr_time + 1, current_point, constraint
                 )  # constraint should be None
-
-                for next in new_neighbors:
+                for next_point in new_neighbors:
                     new_cost = cost_so_far[current_bytes] + float(
-                        np.linalg.norm((next, current_point))
+                        np.linalg.norm((next_point, current_point))
                     )
-                    next_bytes = next.tobytes()
+                    next_bytes = next_point.tobytes()
                     if (
                         next_bytes not in cost_so_far
                         or new_cost < cost_so_far[next_bytes]
                     ):
                         cost_so_far[next_bytes] = new_cost
                         time[next_bytes] = curr_time + 1
-                        priority = new_cost + heuristic(next, goal.pos)
+                        priority = new_cost + heuristic(next_point, goal.pos)
                         frontier.put((priority, next_bytes))
                         came_from[next_bytes] = current_bytes
             return None
@@ -171,15 +169,18 @@ class CBS(PathPlanner):
                     curr_time + 1, current_point, constraint
                 )
 
-                for next in new_neighbors:
+                for next_point in new_neighbors:
                     new_cost = cost_so_far[current_bytes] + float(
-                        np.linalg.norm((next, current_point))
+                        np.linalg.norm((next_point, current_point))
                     )
-                    if next not in cost_so_far or new_cost < cost_so_far[next]:
-                        next_bytes = next.tobytes()
+                    if (
+                        next_point not in cost_so_far
+                        or new_cost < cost_so_far[next_point]
+                    ):
+                        next_bytes = next_point.tobytes()
                         cost_so_far[next_bytes] = new_cost
                         time[next_bytes] = curr_time + 1
-                        priority = new_cost + heuristic(next, goal.pos)
+                        priority = new_cost + heuristic(next_point, goal.pos)
                         frontier.put((priority, next_bytes))
                         came_from[next_bytes] = current_bytes
             return None
