@@ -195,19 +195,17 @@ class CBS(PathPlanner):
         agents = solution.keys()
         curr_timestep = 0
         max_len = len(max(agent_paths_cells.values(), key=len))
+        print(max_len, "Max len")
         while curr_timestep < max_len:
             time_coordinates: Dict[Agent, Point] = {}
             for agent in agents:
-                print("checking agent ", agent.name)
                 path = agent_paths_cells[agent]
                 # Use the last agent position if it is done moving
                 if len(path) < curr_timestep + 1:
                     pt = path[-1]
                 else:
                     pt = path[curr_timestep]
-                print("current point ", pt)
                 existing_values = np.array(list(time_coordinates.values()))
-                print(existing_values)
                 if len(existing_values) > 0 and np.any(
                     np.all(pt == existing_values, axis=1)
                 ):
@@ -217,6 +215,7 @@ class CBS(PathPlanner):
                     return Conflict({agent, other_agent}, pt, curr_timestep)
                 else:
                     time_coordinates[agent] = pt
+            curr_timestep += 1
         # No conflicts
         return None
 
@@ -265,7 +264,6 @@ class CBS(PathPlanner):
             # explored_node_set.append(cur_node)
 
             conflict = CBS.validate_solution(omap, cur_node.solution)
-            print(conflict)
 
             if conflict is None:  # Solution had been found
                 # Create agentPaths and Figure

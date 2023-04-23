@@ -64,8 +64,8 @@ def main() -> None:
     #     test_omap, start_cell, [goal], constraint=constraint, existing_path=None
     # )
 
-    ag1 = Agent(name="test1", pos=np.array([0, 1, 0]))  # global starting position
-    ag2 = Agent(name="test2", pos=np.array([6, 6, 0]))
+    ag1 = Agent(name="test1", pos=np.array([0, 0, 0]))  # global starting position
+    ag2 = Agent(name="test2", pos=np.array([2, 2, 0]))
 
     # Goals in cells
     goals = {
@@ -80,8 +80,8 @@ def main() -> None:
 
     print(solution)
 
-    # conflicts = CBS.validate_solution(test_omap, solution)
-    # print(conflicts)
+    conflicts = CBS.validate_solution(test_omap, solution)
+    print(conflicts)
 
     # result = CBS.generate(
     #     test_omap,
