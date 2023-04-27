@@ -65,12 +65,12 @@ def main() -> None:
     # )
 
     ag1 = Agent(name="test1", pos=np.array([0.0, 0.0, 0.0]))  # global starting position
-    ag2 = Agent(name="test2", pos=np.array([2.0, 2.0, 0.0]))
+    ag2 = Agent(name="test2", pos=np.array([0.6, 0.6, 0.0]))
 
     # Goals in cells
     goals = {
-        ag1: [Goal(np.array((2, 2, 0), dtype=np.int64))],
-        ag2: [Goal(np.array((0, 0, 0), dtype=np.int64))],
+        ag1: [Goal(np.array((0.5, 0.5, 0.0)))],
+        ag2: [Goal(np.array((0.0, 0.0, 0.0)))],
     }
 
     # path_1 = CBS.single_agent_astar(omap=test_omap, start=ag1.pos, goals=goals[ag1])

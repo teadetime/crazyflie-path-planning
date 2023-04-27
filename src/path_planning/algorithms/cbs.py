@@ -231,6 +231,19 @@ class CBS(PathPlanner):
     ) -> Tuple[AgentPaths, go.Figure]:  # pyright: ignore[reportGeneralTypeIssues]
         """Conflict Base Search PathPlanner."""
 
+        goals = {
+            key: [
+                Goal(
+                    omap._glbl_pts_to_cells(
+                        np.expand_dims(value[0].pos, axis=0)
+                    ).astype(np.int64),
+                    value[0].priority,
+                    value[0].label,
+                )
+            ]
+            for key, value, in goals.items()
+        }
+
         def _get_cost(soln: Solution) -> float:
             """Sum costs of paths."""
             return sum(j[-1] for _, j in soln.values())
@@ -240,10 +253,15 @@ class CBS(PathPlanner):
 
         starting_pos: Dict[Agent, Point] = {}
         if override_starting_pos is not None:
-            starting_pos = override_starting_pos
+            for agent, pos in override_starting_pos.items():
+                starting_pos[agent] = omap._glbl_pts_to_cells(
+                    np.expand_dims(pos, axis=0)
+                ).astype(np.float64)
         else:
             for agent in goals.keys():
-                starting_pos[agent] = agent.pos
+                starting_pos[agent] = omap._glbl_pts_to_cells(
+                    np.expand_dims(agent.pos, axis=0)
+                ).astype(np.float64)
 
         initial_constraint: FrozenSet[Constraint] = frozenset()
         initial_solution: Solution = {}
