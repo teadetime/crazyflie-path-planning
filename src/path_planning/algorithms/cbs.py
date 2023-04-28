@@ -4,7 +4,7 @@
 from copy import copy
 from operator import attrgetter
 from queue import PriorityQueue
-from typing import Dict, FrozenSet, List, NamedTuple, Optional, Set, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import numpy as np
 import plotly.graph_objects as go
@@ -35,7 +35,7 @@ class Constraint(NamedTuple):
 class CBSNode(NamedTuple):
     """Node for CBS."""
 
-    constraint_set: Constraint
+    constraint_set: None | Constraint
     solution: Solution
     cost: float
 
@@ -64,15 +64,15 @@ class CBS(PathPlanner):
             pt_int = pt.astype(np.int64)
             for x in range(-1, 2):
                 for y in range(-1, 2):
-                    for z in range(-1, 2):
-                        point = pt_int + np.array([x, y, z], dtype=np.int64)
-                        if ((point >= omap.map.shape) | (point < ([0, 0, 0]))).any():
+                    # for z in range(-1, 2):
+                    point = pt_int + np.array([x, y, 0], dtype=np.int64)
+                    if ((point >= omap.map.shape) | (point < ([0, 0, 0]))).any():
+                        continue
+                    if cnst is not None and time == cnst.time:
+                        if not np.array((point - cnst.vertex), dtype=bool).any():
                             continue
-                        if cnst is not None and time == cnst.time:
-                            if not np.array((point - cnst.vertex), dtype=bool).any():
-                                continue
-                        if not bool(omap.map[(point[0], point[1], point[2])].any()):
-                            points.append(point.astype(np.float64))
+                    if not bool(omap.map[(point[0], point[1], point[2])].any()):
+                        points.append(point.astype(np.float64))
             return points
 
         def heuristic(pos: Point, goal: Point) -> float:
@@ -198,7 +198,6 @@ class CBS(PathPlanner):
         agents = solution.keys()
         curr_timestep = 0
         max_len = len(max(agent_paths_cells.values(), key=len))
-        print(max_len, "Max len")
         while curr_timestep < max_len:
             time_coordinates: Dict[Agent, Point] = {}
             for agent in agents:
@@ -224,13 +223,12 @@ class CBS(PathPlanner):
         return None
 
     @staticmethod
-    def generate(
+    def generate(  # noqa: C901
         omap: OMap,
         goals: Dict[Agent, List[Goal]],
         override_starting_pos: None | Dict[Agent, Point] = None,
     ) -> Tuple[AgentPaths, go.Figure]:  # pyright: ignore[reportGeneralTypeIssues]
         """Conflict Base Search PathPlanner."""
-
         goals = {
             key: [
                 Goal(
@@ -246,7 +244,10 @@ class CBS(PathPlanner):
 
         def _get_cost(soln: Solution) -> float:
             """Sum costs of paths."""
-            return sum(j[-1] for _, j in soln.values())
+            return sum(
+                j[-1]  # pyright: ignore [reportGeneralTypeIssues]
+                for _, j in soln.values()
+            )
 
         # Relies heavily on pseudocode:
         # https://www.sciencedirect.com/science/article/pii/S0004370214001386
@@ -263,7 +264,7 @@ class CBS(PathPlanner):
                     np.expand_dims(agent.pos, axis=0)
                 ).astype(np.float64)
 
-        initial_constraint: FrozenSet[Constraint] = frozenset()
+        initial_constraint: None | Constraint = None
         initial_solution: Solution = {}
         for agent, goal_list in goals.items():
             single_a_result = CBS.single_agent_astar(
@@ -289,7 +290,9 @@ class CBS(PathPlanner):
 
             if conflict is None:  # Solution had been found
                 # Create agentPaths and Figure
-                agent_paths = {k: v[0] for k, v in cur_node.solution.items()}
+                agent_paths = {
+                    k: v[0] * omap.cell_size for k, v in cur_node.solution.items()
+                }
                 return (agent_paths, go.Figure())
             for agent in conflict.agent_set:
                 constraint = Constraint(agent, conflict.vertex, conflict.time)

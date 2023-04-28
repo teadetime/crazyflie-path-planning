@@ -1,10 +1,10 @@
 """Sandbox environment."""
 
 import numpy as np
+import plotly.graph_objects as go
 
-# from path_planning import viz
-# import plotly.graph_objects as go
-from path_planning.algorithms.cbs import CBS, Constraint  # , Constraint
+from path_planning import viz
+from path_planning.algorithms.cbs import CBS
 from path_planning.omap import OMap
 from path_planning.utils import Agent, Goal
 
@@ -73,34 +73,16 @@ def main() -> None:
         ag2: [Goal(np.array((0.0, 0.0, 0.0)))],
     }
 
-    # path_1 = CBS.single_agent_astar(omap=test_omap, start=ag1.pos, goals=goals[ag1])
-    # path_2 = CBS.single_agent_astar(omap=test_omap, start=ag2.pos, goals=goals[ag2])
-
-    # solution = {ag1: path_1, ag2: path_2}
-
-    # conflict = CBS.validate_solution(test_omap, solution)
-    # cst = Constraint(conflict.agent_set[1], conflict.vertex, conflict.time)
-
-    # replan = CBS.single_agent_astar(omap=test_omap, start=ag1.pos, goals=goals[ag1], existing_path=solution[ag1][0], constraint=cst)
-
-    # print(replan)
-
-    result = CBS.generate(
+    agent_paths, figure = CBS.generate(
         test_omap,
         goals,
     )
-    if result:
-        print(result[0])
-        paths = result
-
-    # fig = go.Figure()
-    # fig.add_trace(omap_trace)
-    # omap_trace = viz.create_omap_trace(test_omap)
-    # update_dictionary = viz.create_plot_update(test_omap)
-    # fig.update_layout(dict1=update_dictionary)
-    # for path in paths:
-    #     traj_trace = viz.create_points_trace(path)
-    #     fig.add_trace(traj_trace)
-    # fig.show()
-    # else:
-    #     print("No path found!")
+    if agent_paths:
+        print(agent_paths)
+        fig = go.Figure()
+        omap_trace = viz.create_omap_trace_2d(test_omap)
+        fig.add_trace(omap_trace)
+        for _a, p in agent_paths.items():
+            traj_trace = viz.create_points_trace_2d(p)
+            fig.add_trace(traj_trace)
+        fig.show()
