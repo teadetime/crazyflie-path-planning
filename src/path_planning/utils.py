@@ -1,7 +1,9 @@
 """Utilities used across the project."""
 
+import random
 from typing import Annotated, Literal, TypeVar
 
+import matplotlib
 import numpy as np
 import numpy.typing as npt
 
@@ -40,3 +42,8 @@ class Agent:
         self.name = name
         self.pos: Point = pos
         self.battery = None
+
+        colors = dict(matplotlib.colors.cnames.items())
+        hex_colors = tuple(colors.values())
+        self.color = random.choice(hex_colors)
+        print(self.color)

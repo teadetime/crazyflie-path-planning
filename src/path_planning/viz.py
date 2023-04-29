@@ -2,6 +2,7 @@
 
 import plotly.graph_objects as go
 
+from path_planning.algorithms.path_planner import AgentPaths
 from path_planning.utils import Points
 from .omap import OMap
 
@@ -113,12 +114,11 @@ def create_points_trace_2d(
     if properties is None:
         text = [str(n) for n in range(len(points))]
         marker = dict(
-            size=2,
-            symbol="circle",
-            color="black",
+            # size=2,
+            # symbol="circle",
+            # color="black",
             opacity=0.25,
         )
-        line = dict(color="black", width=1)
 
         properties = dict(
             marker=marker,
@@ -126,7 +126,7 @@ def create_points_trace_2d(
             textposition="top center",
             showlegend=False,
             opacity=1,
-            line=line,
+            line=dict(color="black", width=1),
             text=text,
         )
 
@@ -145,3 +145,89 @@ def create_plot_update_2d(figure: go.Figure, omap: OMap) -> None:
         scaleanchor="x",
         scaleratio=1,
     )
+
+
+@staticmethod
+def build_animation(omap: OMap, agent_paths: AgentPaths) -> go.Figure:
+    """Build animation of agent paths."""
+    fig = go.Figure()
+    omap_trace = create_omap_trace_2d(omap)
+    for _a, p in agent_paths.items():
+        traj_trace = create_points_trace_2d(p)
+        fig.add_trace(traj_trace)
+    #  Double add traces for animtation
+    for _a, p in agent_paths.items():
+        marker = dict(
+            size=2,
+            symbol="circle",
+            color=_a.color,
+            opacity=1.0,
+        )
+        properties = dict(
+            marker=marker,
+            mode="markers+text+lines",
+            textposition="top center",
+            showlegend=True,
+            opacity=1,
+            line=dict(color=_a.color, width=4),
+            name=f"Agent: {_a.name}",
+        )
+        traj_trace = create_points_trace_2d(p, properties=properties)
+        fig.add_trace(traj_trace)
+    fig.add_trace(omap_trace)
+
+    # BUILD ANIMATION
+    i = 0
+    max_len = len(max(agent_paths.values(), key=len))
+    lst_frames = []
+    while i < max_len:
+        lst_plots = []
+        for _a, p in agent_paths.items():
+            if i >= len(p):
+                continue
+            lst_plots.append(
+                go.Scatter(
+                    x=[p[i][0]],
+                    y=[p[i][1]],
+                    mode="markers",
+                    marker=dict(
+                        size=40,
+                        symbol="circle",
+                        color=_a.color,
+                        opacity=1,
+                    ),
+                    line=dict(color=_a.color, width=2),
+                )
+            )
+        lst_frames.append(go.Frame(data=lst_plots))
+        i += 1
+    fig.frames = lst_frames
+
+    # ANIMATION
+    fig.update_layout(
+        title_text="Animation of multiple agents",
+        title_font_size=20,
+        updatemenus=[
+            dict(
+                buttons=[
+                    dict(
+                        args=[
+                            None,
+                            {
+                                "frame": {"duration": 500, "redraw": False},
+                                "fromcurrent": False,
+                                "transition": {"duration": 500, "easing": "linear"},
+                            },
+                        ],
+                        label="Play",
+                        method="animate",
+                    )
+                ],
+                type="buttons",
+                showactive=False,
+                xanchor="right",
+                yanchor="bottom",
+            )
+        ],
+    )
+    return fig
