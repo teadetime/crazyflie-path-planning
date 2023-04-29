@@ -203,19 +203,24 @@ class CBS(PathPlanner):
             for agent in agents:
                 path = agent_paths_cells[agent]
                 # Use the last agent position if it is done moving
+                ended = False
                 if len(path) < curr_timestep + 1:
                     pt = path[-1]
+                    ended = True
                 else:
                     pt = path[curr_timestep]
                 existing_values = np.array(list(time_coordinates.values()))
                 if len(existing_values) > 0 and np.any(
                     np.all(pt == existing_values, axis=1)
                 ):
-                    print("COnflict!")
                     other_agent = list(time_coordinates.keys())[
                         np.where(existing_values == pt)[0][0]
                     ]
-                    return Conflict([agent, other_agent], pt, curr_timestep)
+                    if ended is False:
+                        agent_list = [agent, other_agent]
+                    else:
+                        agent_list = [other_agent]
+                    return Conflict(agent_list, pt, curr_timestep)
                 else:
                     time_coordinates[agent] = pt
             curr_timestep += 1
