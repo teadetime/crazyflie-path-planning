@@ -15,6 +15,7 @@ from ..utils import Path, Point
 
 Solution = Dict[Agent, Tuple[Path, float]]
 
+count = 0
 
 class Conflict(NamedTuple):
     """Conflict for CBS."""
@@ -95,9 +96,10 @@ class CBS(PathPlanner):
                     )
                 )
                 current = came_from[current]
+
             path = np.vstack((np.append(start, cost_so_far[start_bytes]), path))
             return path[:-1]
-
+        global count
         if existing_path is None:
             start_byte = (start.astype(np.float64)).tobytes()
             came_from[start_byte] = None
@@ -165,7 +167,7 @@ class CBS(PathPlanner):
                     if path is not None:
                         return (np.vstack((path_pre_constriant, path)), path[-1])
                     break
-
+                
                 new_neighbors = get_neighbors_cells(
                     curr_time + 1, current_point, constraint
                 )
@@ -273,6 +275,7 @@ class CBS(PathPlanner):
             single_a_result = CBS.single_agent_astar(
                 omap, starting_pos[agent], goal_list
             )
+            print("got results", single_a_result)
             if single_a_result is None:
                 raise RuntimeError("Unable to find astar path")
             initial_solution[agent] = single_a_result

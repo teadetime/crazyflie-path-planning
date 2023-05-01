@@ -26,7 +26,7 @@ def main() -> None:
     test_omap.set_rectangles(np.array([4, 4, 0]), np.array([5, 5, 0.24]))
 
     times = []
-    agent_nums = [i for i in range(2, 6)]
+    agent_nums = [i for i in range(2, 3)]
 
     for agent_num in agent_nums:
         output = sweep_cbs(
