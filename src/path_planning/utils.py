@@ -46,4 +46,3 @@ class Agent:
         colors = dict(matplotlib.colors.cnames.items())
         hex_colors = tuple(colors.values())
         self.color = random.choice(hex_colors)
-        print(self.color)

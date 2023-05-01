@@ -96,7 +96,6 @@ class CBS(PathPlanner):
                 )
                 current = came_from[current]
             path = np.vstack((np.append(start, cost_so_far[start_bytes]), path))
-            print(path[:-1])
             return path[:-1]
 
         if existing_path is None:
@@ -107,7 +106,6 @@ class CBS(PathPlanner):
 
             frontier: PriorityQueue = PriorityQueue()
             frontier.put((0, start_byte))
-
             goal = goals[0]
 
             while not frontier.empty():
