@@ -29,7 +29,7 @@ class OMap:
         z_size: float = 1.0,
         origin: Point | None = None,
         cell_size: float = 0.05,
-        bbox: Points | None = None,
+        bbox_tuple: Tuple[Point, Point] | None = None,
     ) -> None:
         """Initialize Occupancy Map."""
         if origin is None:
@@ -37,6 +37,65 @@ class OMap:
 
         if origin[0] >= x_size or origin[1] >= y_size or origin[2] >= z_size:
             raise ValueError("Specify an origin within the Occupancy Grid")
+
+        self.bbox_tuple = bbox_tuple
+        if bbox_tuple is not None:
+            # TODO: enforce bottom left and top right?
+            if len(bbox_tuple) != 2:
+                ValueError(
+                    f"Bbox tuple should have max two opposing corners to make\
+                          a bounding box, got {len(bbox_tuple)} corners"
+                )
+            self.bbox = np.stack(
+                [
+                    bbox_tuple[0],
+                    bbox_tuple[1],
+                    np.array(
+                        [
+                            bbox_tuple[0][0],
+                            bbox_tuple[0][1],
+                            bbox_tuple[1][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[1][0],
+                            bbox_tuple[1][1],
+                            bbox_tuple[0][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[0][0],
+                            bbox_tuple[1][1],
+                            bbox_tuple[1][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[0][0],
+                            bbox_tuple[1][1],
+                            bbox_tuple[0][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[1][0],
+                            bbox_tuple[0][1],
+                            bbox_tuple[1][2],
+                        ]
+                    ),
+                    np.array(
+                        [
+                            bbox_tuple[1][0],
+                            bbox_tuple[0][1],
+                            bbox_tuple[0][2],
+                        ]
+                    ),
+                ]
+            )
+        else:
+            self.bbox = None
 
         x_cells = ceil(x_size / cell_size)
         y_cells = ceil(y_size / cell_size)
@@ -51,7 +110,6 @@ class OMap:
 
         self.origin = origin
         self.cell_size = cell_size
-        self.bbox = bbox
         self.map = np.zeros((x_cells, y_cells, z_cells), dtype=bool)
 
     @property
@@ -66,7 +124,9 @@ class OMap:
         """Convert cells (Nx3) to global points."""
         return (cells * self.cell_size - self.origin).transpose()
 
-    def _glbl_pts_to_cells(self, points: Points, within_grid: bool = True) -> Cells:
+    def _glbl_pts_to_cells(
+        self, points: Points, within_grid: bool = True, trim_within_grid: bool = False
+    ) -> Cells:
         """Conver global points to omap cells."""
         # TODO: Raise error on too big of query
         transformed = points + self.origin
@@ -77,6 +137,8 @@ class OMap:
                 raise ValueError(
                     "Specified global points lay outside the occupancy map"
                 )
+        if trim_within_grid is True:
+            scaled = np.clip(scaled, np.array([0, 0, 0]), np.array(self.map.shape))
         return scaled
 
     def obstacles_in_global(self) -> Points:
@@ -90,7 +152,7 @@ class OMap:
         self.map[(cells[0], cells[1], cells[2])] = state
 
     def get_points_global(self, points: Points, use_bbox: bool = False) -> GridPoints:
-        """Get global frame poitns occupancy."""
+        """Get global frame points occupancy."""
         if use_bbox and self.bbox is not None:
             query = np.concatenate([points + c for c in self.bbox])
         else:
@@ -132,3 +194,44 @@ class OMap:
             query = np.concatenate([points + c for c in self.bbox])
 
         return not self.get_points_global(query).any()
+
+    def _cells_around_point(self, point: Point) -> Points:
+        """Use built in bounding box tuple to fill in cells around point."""
+        if self.bbox is not None:
+            one_corner_cell = self._glbl_pts_to_cells(
+                point + self.bbox[0], False, trim_within_grid=True
+            )
+            opposite_corner_cell = (
+                self._glbl_pts_to_cells(
+                    point + self.bbox[1], False, trim_within_grid=True
+                )
+                + 1
+            )
+            print(f"one_corner: {one_corner_cell}")
+            print(f"other_corner: {opposite_corner_cell}")
+            points = np.mgrid[
+                one_corner_cell[0] : opposite_corner_cell[0],
+                one_corner_cell[1] : opposite_corner_cell[1],
+                one_corner_cell[2] : opposite_corner_cell[2],
+            ]
+
+            # Turn into N x 3
+            return points.reshape(3, (int(points.size / 3))).transpose()
+        else:
+            add_dim = np.expand_dims(point, 0)
+            return self._glbl_pts_to_cells(add_dim, False, trim_within_grid=True)
+
+    def point_in_collision_omap(self, point: Point) -> bool:
+        """Check if points around a global point collide with obstacle map."""
+        cells = self._cells_around_point(point)
+        collision = self.map[(list(cells[:, 0]), list(cells[:, 1]), list(cells[:, 2]))]
+        return bool(collision.any())
+
+    def points_in_collision(self, pt_a: Point, pt_b: Point) -> bool:
+        """Check if two points collide."""
+        cells_a = self._cells_around_point(pt_a)
+        cells_b = self._cells_around_point(pt_b)
+
+        print(f"cells_a: {cells_a.shape} ", cells_a)
+        print(f"cells_b: {cells_b.shape}", cells_b)
+        return (cells_a == cells_b[:, None]).all(-1).any()
