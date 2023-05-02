@@ -135,12 +135,12 @@ def create_points_trace_2d(
 
 
 @staticmethod
-def create_plot_update_2d(figure: go.Figure, omap: OMap) -> None:
+def plot_update_2d(figure: go.Figure, omap: OMap) -> None:
     """Create update Dictionary to use with fig.update_layout()."""
     min, max = omap.min_max
-    figure.update_xaxes(range=[min[0][:-1], max[0][:-1]], constrain="domain")
+    figure.update_xaxes(range=[min[0], max[0]], constrain="domain")
     figure.update_yaxes(
-        range=[min[1][:-1], max[1][:-1]],
+        range=[min[1], max[1]],
         constrain="domain",
         scaleanchor="x",
         scaleratio=1,
@@ -184,11 +184,15 @@ def build_animation(omap: OMap, agent_paths: AgentPaths) -> go.Figure:
         lst_plots = []
         for _a, p in agent_paths.items():
             if i >= len(p):
-                continue
+                x = [p[-1][0]]
+                y = [p[-1][1]]
+            else:
+                x = [p[i][0]]
+                y = [p[i][1]]
             lst_plots.append(
                 go.Scatter(
-                    x=[p[i][0]],
-                    y=[p[i][1]],
+                    x=x,
+                    y=y,
                     mode="markers",
                     marker=dict(
                         size=40,
@@ -214,9 +218,9 @@ def build_animation(omap: OMap, agent_paths: AgentPaths) -> go.Figure:
                         args=[
                             None,
                             {
-                                "frame": {"duration": 500, "redraw": False},
+                                "frame": {"duration": 100, "redraw": False},
                                 "fromcurrent": False,
-                                "transition": {"duration": 500, "easing": "linear"},
+                                "transition": {"duration": 100, "easing": "linear"},
                             },
                         ],
                         label="Play",
@@ -230,4 +234,5 @@ def build_animation(omap: OMap, agent_paths: AgentPaths) -> go.Figure:
             )
         ],
     )
+    plot_update_2d(fig, omap)
     return fig
