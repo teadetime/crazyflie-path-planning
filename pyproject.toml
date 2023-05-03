@@ -10,10 +10,10 @@ packages = [{include = "path_planning", from = "src"}]
 python = ">=3.10,<3.12"
 numpy = "^1.24.2"
 nox-poetry = "^1.0.2"
-cvxpy = {extras = ["scip"], version = "^1.3.1"}
 jupyter = "^1.0.0"
 jupyterlab = "^3.6.3"
 scipy = "^1.10.1"
+cvxpy = {path = "../cvxpy", extras = ["SCIP"], develop = true}
 
 
 [tool.poetry.group.dev.dependencies]

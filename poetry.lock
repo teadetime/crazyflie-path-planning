@@ -539,44 +539,19 @@ typing = ["mypy (>=0.990)"]
 
 [[package]]
 name = "cvxpy"
-version = "1.3.1"
+version = "1.4.0"
 description = "A domain-specific language for modeling convex optimization problems in Python."
 category = "main"
 optional = false
 python-versions = ">=3.7"
-files = [
-    {file = "cvxpy-1.3.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:3f00084505c1f406ee96dabbd9c1ac07c2dc2f1d5824bc8c6d178aa741729761"},
-    {file = "cvxpy-1.3.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:e7ed79dedfa78af38286acdf085d6f15820b4f4210384f560368f428939b348b"},
-    {file = "cvxpy-1.3.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b6ebae7c65474a8fe04ff2c112757999bc889f11e827ecea69bbd18ef9566b3e"},
-    {file = "cvxpy-1.3.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:23268fea9c9e87ba5859d42859fd8392d12b9080ba1966822f95ccfaab386442"},
-    {file = "cvxpy-1.3.1-cp310-cp310-win_amd64.whl", hash = "sha256:1d074fe2aabfe3f2c1725e46a63b13fcd9af6844e5a57a659c8d4494510c0241"},
-    {file = "cvxpy-1.3.1-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:52425e459230c625a152640eea3029a9c1d5e524b1b635978b74cfcc89d6af8d"},
-    {file = "cvxpy-1.3.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:39bccd0cb8bec99c57468a6f5db30d084ffc824633389c9da6a20b897403192f"},
-    {file = "cvxpy-1.3.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:199bcf5e61649edfac970b641652f454b802372ee6b7cbbe0bd80c5347eacdb2"},
-    {file = "cvxpy-1.3.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4c27325e5cc12e35746ebca236aa09bb8abd5c586bcbbbef7498ea5a941d8a75"},
-    {file = "cvxpy-1.3.1-cp311-cp311-win_amd64.whl", hash = "sha256:465d015b3de69c1b06567498c9bcf12882d7b3d1878f610eee477c51892aa46d"},
-    {file = "cvxpy-1.3.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:0995f87e7401229815b5a95e2d08b4442472d7d3a93df1a1a7eba20bb67e67bc"},
-    {file = "cvxpy-1.3.1-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9774274250dd017f08bf9e2cd23ba76d98fc719cc5865ba189e441f216076265"},
-    {file = "cvxpy-1.3.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ea8d7b7c5e3bbb4918e2eff74b798ed547d9b188c0aa01f69eea78f2c022341d"},
-    {file = "cvxpy-1.3.1-cp37-cp37m-win_amd64.whl", hash = "sha256:b9aff48d30aa53ea4673b269b78fccb9af3039456d5d4204e2cdd337d9b82f95"},
-    {file = "cvxpy-1.3.1-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:ba12110c957c8a5acd69cf68cb0c8072400e9b7404ac50f65e4c03b09dc78c47"},
-    {file = "cvxpy-1.3.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:27001d30ab86101ed8e6f9e369cb2e8afbddf4a219d8a64625b5d8ad82f75de2"},
-    {file = "cvxpy-1.3.1-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:230da88618eec3988131b5e0037e620c563e8f210567016aa0903f189d12802b"},
-    {file = "cvxpy-1.3.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d0a5aa1d2f4f79447043987498746e18a73ef2df04d738b688fcf1e0d8843036"},
-    {file = "cvxpy-1.3.1-cp38-cp38-win_amd64.whl", hash = "sha256:5f56bfabee566084b555130879ecb16705e832326e9eabc53bb0357ff4a4ac34"},
-    {file = "cvxpy-1.3.1-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:66670a9fd0648cbdccc96e918796282ce831d41680638b7b83dd5b00473fa3ff"},
-    {file = "cvxpy-1.3.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:e9c6a7a601dd6d92827b6bc544a81e125c63f6ca7d83fbc6df5e573749a6f87e"},
-    {file = "cvxpy-1.3.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:eed309c2cae4f33a0964df83ebb581e7418f16e66745762483284c2aca8ceb32"},
-    {file = "cvxpy-1.3.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e8ff42eecf008ca1d6ef8b77e784c1a65fe639c376d4dde55d7d12a1a79e1f23"},
-    {file = "cvxpy-1.3.1-cp39-cp39-win_amd64.whl", hash = "sha256:d40bb4530d98652d036cd9b263bebc9b8e5c5e35c65670ce15f1257178232e54"},
-    {file = "cvxpy-1.3.1.tar.gz", hash = "sha256:f07bfe93677a755a8554c4fda622ef01e2247ace99b3a78107aa9070e0d0a3cb"},
-]
+files = []
+develop = true
 
 [package.dependencies]
 ecos = ">=2"
 numpy = ">=1.15"
 osqp = ">=0.4.1"
-PySCIPOpt = {version = "*", optional = true, markers = "extra == \"scip\""}
+PySCIPOpt = {version = "*", optional = true, markers = "extra == \"SCIP\""}
 scipy = ">=1.1.0"
 scs = ">=1.1.6"
 setuptools = ">65.5.1"
@@ -598,6 +573,10 @@ scip = ["PySCIPOpt"]
 scipy = ["scipy"]
 scs = ["setuptools (>65.5.1)"]
 xpress = ["xpress"]
+
+[package.source]
+type = "directory"
+url = "../cvxpy"
 
 [[package]]
 name = "darglint"
@@ -3087,4 +3066,4 @@ test = ["mypy", "pre-commit", "pytest", "pytest-asyncio", "websockets (>=10.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "331c6b44c63d74385c780f2a415d235795e5a1bc6607a7d6a027c14552c0de12"
+content-hash = "ff9d144781cd711bd57fb3beeb749d9bc39bc51035eb3fcb5d03fa1abec368cb"
