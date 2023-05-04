@@ -1,32 +1,31 @@
 from typing import List
+from dataclasses import dataclass
 
 import numpy as np
 import cvxpy as cp
 
 from scipy.spatial import HalfspaceIntersection
 
-class FreespacePolytopes():
+@dataclass
+class Polytope():
+    A: np.ndarray
+    b: np.ndarray
+    vertices: np.ndarray
+
+class FreespacePolytopes(list):
     """An implementation of the IRIS free-space convex partitioning algorithm
     as described by Diets et al, 2014. TODO: Also implement the intelligent automatic seeding
     algorithm as described by Diets et al, 2015.
     """
 
-    # TODO: Consider storing the As, bs outputs?
-
     obstacles: List[np.ndarray]
-    # TODO: Maybe make a single polytope an dataclass with A, b, vertices?
-    # And then we can just have a list of the polytopes.
-    # TODO: Maybe FreespacePolytopes could sublcass lists?
-    As: List[np.ndarray]
-    bs: List[np.ndarray]
-    vertices: List[np.ndarray]
 
     def __init__(self, obstacles: List[np.ndarray]):
         self.obstacles = obstacles
-        self.convex_freespace_decomp()
-
-    def __iter__(self):
-        return zip(self.As, self.bs, self.vertices)
+        polys_list = self._convex_freespace_decomp()
+        
+        # Pass the list of Polytopes to the Python list parent class data storage
+        super(FreespacePolytopes, self).__init__(polys_list)
 
     def _find_hyperplanes(self, C, d):
         # Step 1: Find separating hyperplanes which will allow further expansion of the ellipse:
@@ -116,7 +115,7 @@ class FreespacePolytopes():
         
         return A, b, d
     
-    def convex_freespace_decomp(self):
+    def _convex_freespace_decomp(self):
         """Decompose the overall obstacle space into individual convex regions.
 
         Returns:
@@ -132,7 +131,8 @@ class FreespacePolytopes():
 
         # Note we save d here for finding the polytope vertices from planes via HalfspaceIntersect
         # HalfspaceIntersect requires a point within the polytope, which we use d for.
-        self.As, self.bs, self.ds, self.vertices = [], [], [], []
+        # self.As, self.bs, self.ds, self.vertices = [], [], [], []
+        polys_list = []
         for start_posn in start_posns:
             A_i, b_i, d_i = self._find_poly(start_posn)
 
@@ -145,7 +145,6 @@ class FreespacePolytopes():
             thetas = np.arctan2(hs[:, 1] - hs_center[1], hs[:, 0] - hs_center[0])
             vertices_i = hs[np.argsort(thetas)]
 
-            self.As.append(A_i)
-            self.bs.append(b_i)
-            self.vertices.append(vertices_i)
+            polys_list.append(Polytope(A_i, b_i, vertices_i))
 
+        return polys_list
