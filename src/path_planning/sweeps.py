@@ -1,4 +1,3 @@
-
 """Wrappers for testing algorithms."""
 
 import time
@@ -67,6 +66,5 @@ def sweep_cbs(iterations: int, num_agents: int, omap: OMap, min_path_length: flo
             goals,
         )
         end_time = time.process_time()
-        results.append((result[0], end_time - start_time))
+        results.append((result, end_time - start_time))
     return results
-
