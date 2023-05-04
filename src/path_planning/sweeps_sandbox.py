@@ -9,8 +9,8 @@ from path_planning.omap import OMap
 from path_planning.utils import Agent, Goal
 
 
-
 from .sweeps import sweep_cbs
+
 
 def main() -> None:
     """Main function within Sandbox."""
@@ -26,9 +26,10 @@ def main() -> None:
     test_omap.set_rectangles(np.array([4, 4, 0]), np.array([5, 5, 0.24]))
 
     times = []
-    agent_nums = [i for i in range(2, 3)]
+    agent_nums = [i for i in range(3, 7)]
 
     for agent_num in agent_nums:
+        print(f"Sweeping {agent_num}, agents")
         output = sweep_cbs(
             iterations=20,
             num_agents=agent_num,

@@ -195,10 +195,10 @@ def build_animation(omap: OMap, agent_paths: AgentPaths) -> go.Figure:
                     y=y,
                     mode="markers",
                     marker=dict(
-                        size=40,
+                        size=15,
                         symbol="circle",
                         color=_a.color,
-                        opacity=1,
+                        opacity=0.7,
                     ),
                     line=dict(color=_a.color, width=2),
                 )
