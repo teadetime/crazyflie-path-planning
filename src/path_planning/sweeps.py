@@ -30,7 +30,7 @@ def distance(point1: Point, point2: Point):
     return np.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
 
 
-def generate_start_goal_pair(omap: OMap, min_dist: float = 0.0):
+def generate_start_goal_pair(omap: OMap, min_dist: float = 0.0, constraint_start: list = [], constraint_goal: list = []):
     """choose non-equal, empty start and goal points in an OMap"""
     pair = []
     for i in range(2):
@@ -40,6 +40,8 @@ def generate_start_goal_pair(omap: OMap, min_dist: float = 0.0):
             bool(omap.map[cell].any())
             or (len(pair) > 0 and np.any(np.all(point == pair, axis=1)))
             or (len(pair) > 0 and distance(point, pair[0]) < min_dist)
+            or (len(constraint_goal) > 0 and len(pair) > 0 and np.any(np.all(point == constraint_goal, axis=1)))
+            or (len(constraint_start) > 0 and len(pair) == 0 and np.any(np.all(point == constraint_start, axis=1)))
         ):
             point = choose_omap_point(omap=omap)
             cell = omap._glbl_pts_to_cells(point).astype(np.int64)
