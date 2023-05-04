@@ -70,9 +70,14 @@ class GCS(PathPlanner):
         plot_zones(polys, colors, fig=fig)
 
         fig.update_layout(yaxis_scaleanchor="x")
-        fig.show()
 
         graph_of_convex_sets = GraphOfConvexSets(polys)
-        graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
+        x_opt = graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
+        fig.add_trace(go.Scatter(
+            x=x_opt[0, :],
+            y=x_opt[1, :],
+            line=dict(color="darkred")
+        ))
 
-        return AgentPaths()
+        fig.show()
+        return None

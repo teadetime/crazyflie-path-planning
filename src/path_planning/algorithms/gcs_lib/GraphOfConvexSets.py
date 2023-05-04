@@ -68,35 +68,18 @@ class GraphOfConvexSets:
         
         return edges_in, edges_out
 
-    def solve(self, x_0: np.ndarray, x_goal: np.ndarray):
-        """Solves the shortest path problem over a graph of convex sets given start and end points
+    def _solve_gcs_perspective(self, x_0, x_goal, polys_st, mat_edges_st, s, t):
+        """Solve the shortest-path-on-GCS problem, but reformulated through perspective transforms
 
         Args:
-            x_0 (np.ndarray): Start point
-            x_goal (np.ndarray): End point
+            x_0 (np.ndarray): 1d array of start point position
+            x_goal (np.ndarray): 1d array of end point position
+            polys_st (FreespacePolytopes): Polytopes including start and endpoint
+            mat_edges_st (np.ndarray): Edge matrix of graph including start and end edges
 
         Returns:
-            np.ndarray: The sequence of points x which form the optimal path
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: Returns decision variables z, z_prime, and y
         """
-        # Find polytopes (graph nodes) which contain the start and end points
-        s_poly, t_poly = 0, 0
-        for i, poly in enumerate(self.polys):
-            if np.all(poly.A @ np.atleast_2d(x_0).T - poly.b <= 0) and (s_poly == 0):
-                s_poly = i
-            if np.all(poly.A @ np.atleast_2d(x_goal).T - poly.b <= 0) and (t_poly == 0):
-                t_poly = i
-
-        # Insert additional start and endpoint nodes into the graph
-        # Note: If we directly impose constraints on position of points in the regions, this makes problems overdefined and unsolvable.
-        # Start and end point constraints call for the creation of new graph nodes to avoid overconstraining the problem.
-        # Currently, we just insert a node that's a copy of the node with the polytope the start/end points are in.
-        n_polys = len(self.polys)
-        s, t = n_polys, n_polys + 1
-        start_edge, end_edge = [s, s_poly], [t_poly, t]
-        # TODO: If we have a better underlying graph structure, then these can be formulated as just adding two nodes and edges. This is kinda hacky
-        mat_edges_st = np.vstack([self.mat_edges, start_edge, end_edge])
-        polys_st = copy.deepcopy(self.polys)
-        polys_st.extend([polys_st[s_poly], polys_st[t_poly]])
 
         # Define decision variables
         num_edges = len(mat_edges_st)
@@ -184,3 +167,88 @@ class GraphOfConvexSets:
         ## Solve the problem!!
         prob = cp.Problem(cp.Minimize(cost), constr)
         prob.solve(solver="SCIP")
+
+        ys_val = np.array([y.value for y in ys]).flatten().astype(np.bool_)
+
+        return z.value, z_prime.value, ys_val
+
+
+    def solve(self, x_0: np.ndarray, x_goal: np.ndarray):
+        """Solves the shortest path problem over a graph of convex sets given start and end points
+
+        Args:
+            x_0 (np.ndarray): Start point
+            x_goal (np.ndarray): End point
+
+        Returns:
+            np.ndarray: The sequence of points x which form the optimal path
+        """
+        # Find polytopes (graph nodes) which contain the start and end points
+        s_poly, t_poly = 0, 0
+        for i, poly in enumerate(self.polys):
+            if np.all(poly.A @ np.atleast_2d(x_0).T - poly.b <= 0) and (s_poly == 0):
+                s_poly = i
+            if np.all(poly.A @ np.atleast_2d(x_goal).T - poly.b <= 0) and (t_poly == 0):
+                t_poly = i
+
+        # Insert additional start and endpoint nodes into the graph
+        # Note: If we directly impose constraints on position of points in the regions, this makes problems overdefined and unsolvable.
+        # Start and end point constraints call for the creation of new graph nodes to avoid overconstraining the problem.
+        # Currently, we just insert a node that's a copy of the node with the polytope the start/end points are in.
+        n_polys = len(self.polys)
+        s, t = n_polys, n_polys + 1
+        start_edge, end_edge = [s, s_poly], [t_poly, t]
+        # TODO: If we have a better underlying graph structure, then these can be formulated as just adding two nodes and edges. This is kinda hacky
+        mat_edges_st = np.vstack([self.mat_edges, start_edge, end_edge])
+        polys_st = copy.deepcopy(self.polys)
+        polys_st.extend([polys_st[s_poly], polys_st[t_poly]])
+
+        ## Build and solve the mathematical problem!
+        z, z_prime, y = self._solve_gcs_perspective(x_0, x_goal, polys_st, mat_edges_st, s, t)
+        
+        ## Reorder the vertices into a sequence following the order of the path
+        # For example, e_edges_in_path may be [3, 1, 5]
+        # But if edge_3 = [3, 2], edge_1 = [2, 4], and edge_5 = [1, 3]
+        # Then the actual path should be [1, 3], [3, 2], [2, 4]
+        # So e_edges_ordered = [5, 3, 1].
+        e_edges_in_path = np.where(y)[0] # Incorrectly ordered list of edge id's (e) for the edges actually in the path
+        edges_in_path = mat_edges_st[y, :] # List of the edges themeselves (vertex pairs)
+
+        i_edges_ordered = np.zeros(e_edges_in_path.shape, dtype=np.int_) # List of indices for the correct ordering of the edge ids
+
+        next_vertex = s
+        for i in range(len(e_edges_in_path)):
+            # Index from reduced path edge list which has the edge
+            # NOTE: This is currently O(n^2) where n = path length. (for loop * np.where) - is there a better way?
+            i_current_edge = np.where(edges_in_path[:, 0] == next_vertex)[0] # Find index of edge which begins with the current vertex
+            current_edge = edges_in_path[i_current_edge, :]
+
+            i_edges_ordered[i] = i_current_edge
+            next_vertex = current_edge[:, 1] # The end vertex of this edge is the start vertex of the next one
+            
+        e_edges_ordered = e_edges_in_path[i_edges_ordered]
+        edges_ordered = mat_edges_st[e_edges_ordered, :]
+        all_vertices_but_last, last_vertex = edges_ordered[:, 0].flatten(), [edges_ordered[-1, 1]]
+        v_ordered = np.concatenate([all_vertices_but_last, last_vertex])
+
+        ## Reconstruct the point positions x from the flow variables z, z_prime, and y
+        xs = np.zeros((2, len(polys_st)))
+        for i in range(len(polys_st) - 2):
+            _, edges_out = self._get_io_edges(i, mat_edges_st)
+            
+            z_sum = np.sum(z[:, edges_out], axis=1)
+            y_sum = np.sum(y[edges_out])
+            
+            # Eqn. 5.7 
+            x_v = z_sum / y_sum if y_sum > 1e-5 else np.zeros(z_sum.shape) * np.nan
+            xs[:, i] = x_v
+            
+        # Independently reconstruct start and end point positions (Eqn. 5.6)
+        _, edges_out_of_s = self._get_io_edges(s, mat_edges_st)
+        edges_into_t, _ = self._get_io_edges(t, mat_edges_st)
+        xs[:, -2] = np.sum(z[:, edges_out_of_s], axis=1)
+        xs[:, -1] = np.sum(z_prime[:, edges_into_t], axis=1)
+
+        # Select vertex point positions in the correct order, save and return
+        x_out = xs[:, v_ordered]
+        return x_out
