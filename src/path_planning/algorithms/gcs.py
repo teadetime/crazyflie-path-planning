@@ -11,6 +11,7 @@ from ..omap import OMap
 from ..utils import Path, Point
 
 from .gcs_lib.FreespacePolytopes import FreespacePolytopes
+from .gcs_lib.GraphOfConvexSets import GraphOfConvexSets
 from .gcs_lib.plotting import plot_obs, plot_zones
 
 import plotly.graph_objects as go # TODO: Remove this once we are no longer in debug mode.
@@ -61,7 +62,6 @@ class GCS(PathPlanner):
         obs = [obs_cube1, obs_cube2, r_wall, t_wall, l_wall, b_wall]
 
         polys = FreespacePolytopes(obs)
-        polys.convex_freespace_decomp()
 
         fig = go.Figure()
         plot_obs(obs, fig=fig)
@@ -71,5 +71,8 @@ class GCS(PathPlanner):
 
         fig.update_layout(yaxis_scaleanchor="x")
         fig.show()
+
+        graph_of_convex_sets = GraphOfConvexSets(polys)
+        print(graph_of_convex_sets.mat_edges)
 
         return AgentPaths()

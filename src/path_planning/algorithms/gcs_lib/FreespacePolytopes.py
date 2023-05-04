@@ -14,14 +14,16 @@ class FreespacePolytopes():
     # TODO: Consider storing the As, bs outputs?
 
     obstacles: List[np.ndarray]
-    # TODO: Maybe make a single polytope an object with A, b, vertices?
+    # TODO: Maybe make a single polytope an dataclass with A, b, vertices?
     # And then we can just have a list of the polytopes.
+    # TODO: Maybe FreespacePolytopes could sublcass lists?
     As: List[np.ndarray]
     bs: List[np.ndarray]
     vertices: List[np.ndarray]
 
     def __init__(self, obstacles: List[np.ndarray]):
         self.obstacles = obstacles
+        self.convex_freespace_decomp()
 
     def __iter__(self):
         return zip(self.As, self.bs, self.vertices)
