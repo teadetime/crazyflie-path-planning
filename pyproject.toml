@@ -15,8 +15,8 @@ jupyterlab = "^3.6.3"
 scipy = "^1.10.1"
 nbconvert = "^7.3.1"
 matplotlib = "^3.7.1"
-cvxpy = {git = "https://github.com/wfan19/cvxpy.git", rev = "perspective_s_eq_0", develop = true}
 pyscipopt = "^4.3.0"
+cvxpy = {git = "https://github.com/wfan19/cvxpy.git", rev = "perspective_s_eq_0"}
 
 
 [tool.poetry.group.dev.dependencies]

@@ -619,7 +619,7 @@ category = "main"
 optional = false
 python-versions = ">=3.7"
 files = []
-develop = true
+develop = false
 
 [package.dependencies]
 ecos = ">=2"
@@ -3413,4 +3413,4 @@ test = ["mypy", "pre-commit", "pytest", "pytest-asyncio", "websockets (>=10.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "5772be49f911aacd21f979ce7d7762930a6a95ece82f7c42bfa8ae7da42b9eff"
+content-hash = "f06cebcd52e0276386e9232f8fd913c30d348762e5cae4687801ade688965d16"
