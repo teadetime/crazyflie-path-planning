@@ -19,15 +19,21 @@ def main() -> None:
         # bbox_tuple=(np.array([-.10, -.10, -.20]), np.array([.10, .10, .20])),
     )
 
-    test_omap.set_rectangles(np.array([3, 3, 0]), np.array([6, 6, 1.9]))
+    test_omap.set_rectangles(np.array([1, 8, 0]), np.array([5, 9, 1.9]))
+    test_omap.set_rectangles(np.array([6, 8, 0]), np.array([9, 9, 1.9]))
+    test_omap.set_rectangles(np.array([1, 2, 0]), np.array([2, 8, 1.9]))
+    test_omap.set_rectangles(np.array([8, 2, 0]), np.array([9, 8, 1.9]))
+    test_omap.set_rectangles(np.array([2, 2, 0]), np.array([8, 3, 1.9]))
 
-    ag1 = Agent(name="CF 1", pos=np.array([1.05901491, 7.13232832, 0.5328699]))  # global starting position
-    ag2 = Agent(name="CF 2", pos=np.array([9.55325931, 6.58183465, 1.35118168]))
+
+    ag1 = Agent(name="CF 1", pos=np.array([5, 5, 0.0]))  # global starting position
+    ag2 = Agent(name="CF 2", pos=np.array([6, 5, 0.0]))  # global starting position
 
     # Goals in cells
     goals = {
-        ag1: [Goal(np.array([1.78599858, 2.51949983, 0.13095248]))],
-        ag2: [Goal(np.array([2.99585621, 0.36188631, 0.2105532 ]))],
+        ag1: [Goal(np.array([5, 1, 0.0]))],
+        ag2: [Goal(np.array([6, 1, 0.0]))],
+
     }
 
     agent_paths, _figure = CBS.generate(
