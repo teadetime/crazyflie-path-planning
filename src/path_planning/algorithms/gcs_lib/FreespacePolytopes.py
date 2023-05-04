@@ -14,15 +14,17 @@ class FreespacePolytopes():
     # TODO: Consider storing the As, bs outputs?
 
     obstacles: List[np.ndarray]
+    # TODO: Maybe make a single polytope an object with A, b, vertices?
+    # And then we can just have a list of the polytopes.
     As: List[np.ndarray]
     bs: List[np.ndarray]
-    ds: List[np.ndarray]
+    vertices: List[np.ndarray]
 
     def __init__(self, obstacles: List[np.ndarray]):
         self.obstacles = obstacles
 
     def __iter__(self):
-        return zip(self.As, self.bs, self.ds)
+        return zip(self.As, self.bs, self.vertices)
 
     def _find_hyperplanes(self, C, d):
         # Step 1: Find separating hyperplanes which will allow further expansion of the ellipse:
@@ -128,10 +130,20 @@ class FreespacePolytopes():
 
         # Note we save d here for finding the polytope vertices from planes via HalfspaceIntersect
         # HalfspaceIntersect requires a point within the polytope, which we use d for.
-        self.As, self.bs, self.ds = [], [], []
+        self.As, self.bs, self.ds, self.vertices = [], [], [], []
         for start_posn in start_posns:
             A_i, b_i, d_i = self._find_poly(start_posn)
+
+            # Find vertices
+            hs = HalfspaceIntersection(np.hstack([A_i, -b_i]), d_i.flatten()).intersections
+
+            # reorder the halfspace intersection points by their polar angle
+            # This way we make sure we're always plotting the points going around the perimeter
+            hs_center = np.mean(hs, axis=1)
+            thetas = np.arctan2(hs[:, 1] - hs_center[1], hs[:, 0] - hs_center[0])
+            vertices_i = hs[np.argsort(thetas)]
+
             self.As.append(A_i)
             self.bs.append(b_i)
-            self.ds.append(d_i)
+            self.vertices.append(vertices_i)
 
