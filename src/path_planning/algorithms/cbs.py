@@ -7,7 +7,6 @@ from queue import PriorityQueue
 from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import numpy as np
-import plotly.graph_objects as go
 
 from .path_planner import Agent, AgentPaths, Goal, PathPlanner
 from ..omap import OMap
@@ -16,6 +15,7 @@ from ..utils import Path, Point
 Solution = Dict[Agent, Tuple[Path, float]]
 
 count = 0
+
 
 class Conflict(NamedTuple):
     """Conflict for CBS."""
@@ -99,6 +99,7 @@ class CBS(PathPlanner):
 
             path = np.vstack((np.append(start, cost_so_far[start_bytes]), path))
             return path[:-1]
+
         global count
         if existing_path is None:
             start_byte = (start.astype(np.float64)).tobytes()
@@ -167,7 +168,7 @@ class CBS(PathPlanner):
                     if path is not None:
                         return (np.vstack((path_pre_constriant, path)), path[-1])
                     break
-                
+
                 new_neighbors = get_neighbors_cells(
                     curr_time + 1, current_point, constraint
                 )
@@ -232,7 +233,7 @@ class CBS(PathPlanner):
         omap: OMap,
         goals: Dict[Agent, List[Goal]],
         override_starting_pos: None | Dict[Agent, Point] = None,
-    ) -> Tuple[AgentPaths, go.Figure]:  # pyright: ignore[reportGeneralTypeIssues]
+    ) -> AgentPaths:  # pyright: ignore[reportGeneralTypeIssues]
         """Conflict Base Search PathPlanner."""
         goals = {
             key: [
@@ -299,7 +300,7 @@ class CBS(PathPlanner):
                 agent_paths = {
                     k: v[0] * omap.cell_size for k, v in cur_node.solution.items()
                 }
-                return (agent_paths, go.Figure())
+                return agent_paths
             for agent in conflict.agent_set:
                 constraint = Constraint(agent, conflict.vertex, conflict.time)
                 # constraint_set = {constraint}  # + cur_node.constraints

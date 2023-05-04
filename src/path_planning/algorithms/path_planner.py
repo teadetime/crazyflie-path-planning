@@ -3,8 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple
 
-import plotly.graph_objects as go
-
 from ..omap import OMap
 from ..utils import Agent, Goal, Path, Point
 
@@ -21,7 +19,7 @@ class PathPlanner(ABC):
         omap: OMap,
         goals: dict[Agent, List[Goal]],
         override_starting_pos: None | Dict[Agent, Point] = None,
-    ) -> Tuple[AgentPaths, go.Figure]:
+    ) -> AgentPaths:
         """Abstract Base Class for a PathPlanner."""
         pass
 
@@ -32,11 +30,6 @@ class AStar(PathPlanner):
     @staticmethod
     def generate(
         omap: OMap, goals: dict[str, list[Goal]]
-    ) -> Tuple[AgentPaths, go.Figure]:  # pyright:ignore
+    ) -> AgentPaths:  # pyright:ignore
         """Execute A* to generate a path."""
-        pass
-
-    @staticmethod
-    def build_figure() -> go.Figure:
-        """Build Astar plotly figure."""
         pass
