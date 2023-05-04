@@ -17,6 +17,7 @@ nbconvert = "^7.3.1"
 matplotlib = "^3.7.1"
 pyscipopt = "^4.3.0"
 cvxpy = {git = "https://github.com/wfan19/cvxpy.git", rev = "perspective_s_eq_0"}
+pandas = "^2.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -40,6 +41,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 sandbox = "path_planning.sandbox:main"
 sweeps = "path_planning.sweeps_sandbox:main"
+gcs = "path_planning.run_gcs:main"
 
 
 [tool.pyright]
