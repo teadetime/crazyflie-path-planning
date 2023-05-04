@@ -35,10 +35,10 @@ def plot_ellipse(C: np.ndarray, d: np.ndarray, fig = go.Figure()) -> go.Figure()
     return fig
 
 def plot_zones(polys: FreespacePolytopes, colors, fig=go.Figure()):
-    for i, (vertices_i, color) in enumerate(zip(polys.vertices, colors)):
+    for i, (poly, color) in enumerate(zip(polys, colors)):
         fig.add_trace(go.Scatter(
-            x=np.concatenate([vertices_i[:, 0], [vertices_i[0,0]]]),
-            y=np.concatenate([vertices_i[:, 1],[vertices_i[0,1]]]),
+            x=np.concatenate([poly.vertices[:, 0], [poly.vertices[0,0]]]),
+            y=np.concatenate([poly.vertices[:, 1],[poly.vertices[0,1]]]),
             fill="toself",
             line=dict(color=color),
             name=f"Region {i}",

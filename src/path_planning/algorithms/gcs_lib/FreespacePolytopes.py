@@ -115,7 +115,7 @@ class FreespacePolytopes(list):
         
         return A, b, d
     
-    def _convex_freespace_decomp(self):
+    def _convex_freespace_decomp(self) -> List[Polytope]:
         """Decompose the overall obstacle space into individual convex regions.
 
         Returns:

@@ -66,13 +66,13 @@ class GCS(PathPlanner):
         fig = go.Figure()
         plot_obs(obs, fig=fig)
         
-        colors = px.colors.qualitative.Plotly[0:len(polys.As)]
+        colors = px.colors.qualitative.Plotly[0:len(polys)]
         plot_zones(polys, colors, fig=fig)
 
         fig.update_layout(yaxis_scaleanchor="x")
         fig.show()
 
         graph_of_convex_sets = GraphOfConvexSets(polys)
-        print(graph_of_convex_sets.mat_edges)
+        graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
 
         return AgentPaths()
