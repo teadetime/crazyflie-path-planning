@@ -13,8 +13,10 @@ nox-poetry = "^1.0.2"
 jupyter = "^1.0.0"
 jupyterlab = "^3.6.3"
 scipy = "^1.10.1"
-cvxpy = {git = "git@github.com:wfan19/cvxpy.git", rev = "perspective_s_eq_0", develop = true}
 nbconvert = "^7.3.1"
+matplotlib = "^3.7.1"
+cvxpy = {git = "https://github.com/wfan19/cvxpy.git", rev = "perspective_s_eq_0", develop = true}
+pyscipopt = "^4.3.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -37,6 +39,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 sandbox = "path_planning.sandbox:main"
+sweeps = "path_planning.sweeps_sandbox:main"
+
 
 [tool.pyright]
 include = ["src", "tests"]
