@@ -551,7 +551,6 @@ develop = true
 ecos = ">=2"
 numpy = ">=1.15"
 osqp = ">=0.4.1"
-PySCIPOpt = {version = "*", optional = true, markers = "extra == \"SCIP\""}
 scipy = ">=1.1.0"
 scs = ">=1.1.6"
 setuptools = ">65.5.1"
@@ -575,8 +574,10 @@ scs = ["setuptools (>65.5.1)"]
 xpress = ["xpress"]
 
 [package.source]
-type = "directory"
-url = "../cvxpy"
+type = "git"
+url = "git@github.com:wfan19/cvxpy.git"
+reference = "perspective_s_eq_0"
+resolved_reference = "adf7be8536b4b656cddf4250fec960c19786cb7d"
 
 [[package]]
 name = "darglint"
@@ -2172,17 +2173,6 @@ files = [
 ]
 
 [[package]]
-name = "pyscipopt"
-version = "4.3.0"
-description = "Python interface and modeling environment for SCIP"
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "PySCIPOpt-4.3.0.tar.gz", hash = "sha256:d91e0080dc9bb77e4c685c724d8d0e154528322cb2a5a0879ff28dac456802ef"},
-]
-
-[[package]]
 name = "pytest"
 version = "7.2.2"
 description = "pytest: simple powerful testing with Python"
@@ -3066,4 +3056,4 @@ test = ["mypy", "pre-commit", "pytest", "pytest-asyncio", "websockets (>=10.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "ff9d144781cd711bd57fb3beeb749d9bc39bc51035eb3fcb5d03fa1abec368cb"
+content-hash = "4b5486d749f7f9a12f91e4d7bb693c58b66cb527b74603d6626d0d914a0f0d22"
