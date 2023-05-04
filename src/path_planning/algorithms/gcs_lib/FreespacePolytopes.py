@@ -27,6 +27,18 @@ class FreespacePolytopes(list):
         # Pass the list of Polytopes to the Python list parent class data storage
         super(FreespacePolytopes, self).__init__(polys_list)
 
+    def _validate_dims(self, dim: int = None):
+        v_obs_dims = np.array([obstacle.shape[0] for obstacle in self.obstacles])
+        assert np.all(v_obs_dims == v_obs_dims[0]), "Obstacle list has inconsistent dimensionality"
+
+        if dim is not None:
+            assert np.all(v_obs_dims == dim), f"Obstacle list does not match expected dimensionality {dim}"
+
+    @property
+    def n_dims(self):
+        self._validate_dims()
+        return self.obstacles[0].shape[0]
+
     def _find_hyperplanes(self, C, d):
         # Step 1: Find separating hyperplanes which will allow further expansion of the ellipse:
         
@@ -34,7 +46,7 @@ class FreespacePolytopes(list):
         # by solving the quadratic program defined in Eqn.4 in Deits 2014
         # Note that x_tilde is in ball-space!
         n_obs = len(self.obstacles)
-        A = np.zeros((n_obs, 2))
+        A = np.zeros((n_obs, self.n_dims))
         b = np.zeros((n_obs, 1))
         
         # TODO: This can be optimized by checking at the end of each step if there are other obstacles separated by the 
@@ -45,7 +57,7 @@ class FreespacePolytopes(list):
             obs_j_ball_space = np.linalg.inv(C) @ (obs_j - d)
             
             # Find closest point in ball-space
-            x_tilde = cp.Variable((2, 1))
+            x_tilde = cp.Variable((self.n_dims, 1))
             w = cp.Variable((obs_j.shape[1], 1), nonneg=True)
             obj = cp.Minimize(cp.sum_squares(x_tilde)) # Find point which is closest to origin
             constr = [obs_j_ball_space @ w == x_tilde, cp.sum(w) == 1] # Constrain x to inside of obstacle via convex combination of vertices
@@ -76,8 +88,9 @@ class FreespacePolytopes(list):
         """
         # Find the largest ellipsoid that can fit within the given set of planes
         # Implementation of the semidefinite pr"ogram in Eq. 10 in Diets 2014.
-        C = cp.Variable((2, 2), PSD=True)
-        d = cp.Variable((2, 1))
+        n_dims = self.n_dims
+        C = cp.Variable((n_dims, n_dims), PSD=True)
+        d = cp.Variable((n_dims, 1))
         
         obj = cp.Maximize(cp.log_det(C))
         constr = []
@@ -99,9 +112,9 @@ class FreespacePolytopes(list):
             startpoint (np.ndarray): Seed point in configuration space to start the algorithm. A ellipse (circle) of radius r_start is placed there
             stop_rate (float, optional): If growth of ellipse volume is less than this percent then algorithm will terminate. Defaults to 0.1.
         """
-        n_dims = len(seed_pt)
+        self._validate_dims(len(seed_pt))
         d_0 = np.atleast_2d(seed_pt.flatten()).T
-        C_0 = r_start * np.eye(n_dims)
+        C_0 = r_start * np.eye(self.n_dims)
         
         last_C = C_0
         while True:
@@ -122,6 +135,7 @@ class FreespacePolytopes(list):
             As: list of A matrices
             bs: list of b vectors
         """
+        # TODO: Eliminate the need for manually passing in seed points holy shit
         start_posns = np.array([
             [3,3],
             [-3,3],

@@ -76,7 +76,8 @@ class GCS(PathPlanner):
         fig.add_trace(go.Scatter(
             x=x_opt[0, :],
             y=x_opt[1, :],
-            line=dict(color="darkred")
+            line=dict(color="darkred"),
+            name="Shortest Path"
         ))
 
         fig.show()

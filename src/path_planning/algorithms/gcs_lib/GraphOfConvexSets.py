@@ -83,8 +83,8 @@ class GraphOfConvexSets:
 
         # Define decision variables
         num_edges = len(mat_edges_st)
-        z = cp.Variable((2, num_edges))
-        z_prime = cp.Variable((2, num_edges))
+        z = cp.Variable((self.polys.n_dims, num_edges))
+        z_prime = cp.Variable((self.polys.n_dims, num_edges))
         # Unfortunately cp.perspective cannot take elements of a vector for its 's' argument
         # So we have to manually make a list of individual y variables that we feed to cp.perspective one by one.
         ys = []
