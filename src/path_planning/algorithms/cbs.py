@@ -17,6 +17,7 @@ Solution = Dict[Agent, Tuple[Path, float]]
 
 count = 0
 
+
 class Conflict(NamedTuple):
     """Conflict for CBS."""
 
@@ -57,6 +58,8 @@ class CBS(PathPlanner):
         cost_so_far: dict[bytes, float] = {}
         time: dict[bytes, int] = {}
 
+        # if constraint is not None:
+        # print(f"Single agent: {start}{goals[0].pos}{existing_path}{constraint.agent.name}{constraint.vertex}{constraint.time}")
         def get_neighbors_cells(
             time: int, pt: Point, cnst: Constraint | None = None
         ) -> List[Point]:
@@ -99,6 +102,7 @@ class CBS(PathPlanner):
 
             path = np.vstack((np.append(start, cost_so_far[start_bytes]), path))
             return path[:-1]
+
         global count
         if existing_path is None:
             start_byte = (start.astype(np.float64)).tobytes()
@@ -167,11 +171,10 @@ class CBS(PathPlanner):
                     if path is not None:
                         return (np.vstack((path_pre_constriant, path)), path[-1])
                     break
-                
+
                 new_neighbors = get_neighbors_cells(
                     curr_time + 1, current_point, constraint
                 )
-
                 for next_point in new_neighbors:
                     new_cost = cost_so_far[current_bytes] + float(
                         np.linalg.norm((next_point - current_point))
@@ -213,13 +216,20 @@ class CBS(PathPlanner):
                 if len(existing_values) > 0 and np.any(
                     np.all(pt == existing_values, axis=1)
                 ):
+                    # print(f"Time: {curr_timestep}, ag: {agent.name}, ended{ended}, exis:{existing_values},  cur:{pt}")
                     other_agent = list(time_coordinates.keys())[
-                        np.where(existing_values == pt)[0][0]
+                        np.where((existing_values == tuple(pt)).all(axis=1))[0][0]
                     ]
-                    if ended is False:
-                        agent_list = [agent, other_agent]
+                    if ended == False:
+                        if len(agent_paths_cells[other_agent]) <= curr_timestep + 1:
+                            # print(f"Other agent path ended: {agent.name}")
+                            agent_list = [agent]
+                        else:
+                            agent_list = [agent, other_agent]
                     else:
                         agent_list = [other_agent]
+
+                    # print(' '.join(a.name for a in agent_list))
                     return Conflict(agent_list, pt, curr_timestep)
                 else:
                     time_coordinates[agent] = pt
@@ -275,7 +285,6 @@ class CBS(PathPlanner):
             single_a_result = CBS.single_agent_astar(
                 omap, starting_pos[agent], goal_list
             )
-            print("got results", single_a_result)
             if single_a_result is None:
                 raise RuntimeError("Unable to find astar path")
             initial_solution[agent] = single_a_result
@@ -301,20 +310,22 @@ class CBS(PathPlanner):
                 }
                 return (agent_paths, go.Figure())
             for agent in conflict.agent_set:
-                constraint = Constraint(agent, conflict.vertex, conflict.time)
+                constraint = Constraint(
+                    agent, copy(conflict.vertex), copy(conflict.time)
+                )
                 # constraint_set = {constraint}  # + cur_node.constraints
                 solution = copy(cur_node.solution)
                 single_a_result = CBS.single_agent_astar(
                     omap,
                     starting_pos[agent],
                     goals[agent],
-                    existing_path=cur_node.solution[agent][0],
-                    constraint=constraint,
+                    existing_path=solution[agent][0],
+                    constraint=copy(constraint),
                 )
                 if single_a_result is None:
                     raise RuntimeError("Unable to find astar path")
                 solution[agent] = single_a_result
                 cost = _get_cost(solution)
-                explore_list.append(CBSNode(constraint, solution, cost))
+                explore_list.append(CBSNode(copy(constraint), solution, cost))
 
             explore_list.sort(key=attrgetter("cost"))
