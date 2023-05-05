@@ -5,6 +5,7 @@ import numpy as np
 import cvxpy as cp
 
 from scipy.spatial import HalfspaceIntersection
+from scipy.spatial import distance
 
 @dataclass
 class Polytope():
@@ -14,15 +15,14 @@ class Polytope():
 
 class FreespacePolytopes(list):
     """An implementation of the IRIS free-space convex partitioning algorithm
-    as described by Diets et al, 2014. TODO: Also implement the intelligent automatic seeding
-    algorithm as described by Diets et al, 2015.
+    as described by Diets et al, 2014. 
     """
 
     obstacles: List[np.ndarray]
 
-    def __init__(self, obstacles: List[np.ndarray]):
+    def __init__(self, obstacles: List[np.ndarray], n_regions=10):
         self.obstacles = obstacles
-        polys_list = self._convex_freespace_decomp()
+        polys_list = self._convex_freespace_decomp(n_regions)
         
         # Pass the list of Polytopes to the Python list parent class data storage
         super(FreespacePolytopes, self).__init__(polys_list)
@@ -86,7 +86,7 @@ class FreespacePolytopes(list):
             i_obs_to_exclude = []
             for i, obs in enumerate(obs_remaining):
                 # Check if any further obstacles are also excluded by this plane
-                if np.all(a_i @ obs >= b_i):
+                if np.all(a_i @ obs - b_i >= -1e-5):
                     i_obs_to_exclude.append(i)
             
             # Remove the redundant obstacles
@@ -128,7 +128,7 @@ class FreespacePolytopes(list):
         
         return C.value, d.value
 
-    def _find_poly(self, seed_pt: np.ndarray, stop_rate: float = 0.1, r_start=0.1):
+    def _find_poly(self, seed_pt: np.ndarray, stop_rate: float = 0.05, r_start=0.1):
         """An implementation of the IRIS free-space convex partitioning algorithm from Diets et al 2014.
         Given an initial seed point, find a large polytope in free-space by alternating between
         growing an ellipse from the seed point up bounding planes, and then redefining bounding planes
@@ -154,36 +154,61 @@ class FreespacePolytopes(list):
         
         return A, b, d
     
-    def _convex_freespace_decomp(self) -> List[Polytope]:
+    def _convex_freespace_decomp(self, n_regions) -> List[Polytope]:
         """Decompose the overall obstacle space into individual convex regions.
 
         Returns:
             As: list of A matrices
             bs: list of b vectors
         """
-        # TODO: Eliminate the need for manually passing in seed points holy shit
-        start_posns = np.array([
-            [3,3],
-            [-3,3],
-            [-3,-3],
-            [3,-3]
-        ])
+        ## Create freespace polytope search seed-points using heuristic described in Deits et al 2015 II.A
+        # Create a coarse grid across the space
+        obs_points = np.hstack([obs for obs in self.obstacles])
+        scale_bounds = 0.8
+        min_coords = np.amin(obs_points, axis=1) * scale_bounds
+        max_coords = np.amax(obs_points, axis=1) * scale_bounds
+        grid_coords = np.linspace(min_coords, max_coords, 20).T
+        meshes = np.meshgrid(*grid_coords)
+        mesh_points = np.array([mesh.flatten() for mesh in meshes])
 
-        # Note we save d here for finding the polytope vertices from planes via HalfspaceIntersect
-        # HalfspaceIntersect requires a point within the polytope, which we use d for.
-        # self.As, self.bs, self.ds, self.vertices = [], [], [], []
+        dists = distance.cdist(mesh_points.T, obs_points.T)
+        i_furthest_from_obs = np.argmax(np.amin(dists, axis=1))
+
+        next_seed_posn = mesh_points[:, i_furthest_from_obs]
+        obs_and_poly_points = obs_points.copy()
+
         polys_list = []
-        for start_posn in start_posns:
-            A_i, b_i, d_i = self._find_poly(start_posn)
+        for i in range(n_regions):
+            print(f"Seed position: {next_seed_posn}")
+            # Find the polytope given the current start position!
+            A_i, b_i, d_i = self._find_poly(next_seed_posn)
 
-            # Find vertices
-            hs = HalfspaceIntersection(np.hstack([A_i, -b_i]), d_i.flatten()).intersections
+            # Find vertices of the polytope given the separating planes
+            try:
+                vertices_i = HalfspaceIntersection(np.hstack([A_i, -b_i]), d_i.flatten()).intersections.T
+            except:
+                import warnings
+                warnings.warn("Warning: prematurely terminating polytope search as invalid polytope was returned")
+                warnings.warn(f"Seed point: {next_seed_posn}, A_i: {A_i}, b_i: {b_i}")
+                break
 
-            # reorder the halfspace intersection points by their polar angle
-            # This way we make sure we're always plotting the points going around the perimeter
-            hs_center = np.mean(hs, axis=1)
-            thetas = np.arctan2(hs[:, 1] - hs_center[1], hs[:, 0] - hs_center[0])
-            vertices_i = hs[np.argsort(thetas)]
+            # If in 2D: reorder the halfspace intersection points by their polar angle
+            # - This way we make sure we're always plotting the points going around the perimeter
+            # - Does not apply to >2D polytopes - no clear "one-dimensional" ordering of vertices / doesn't matter for plotting anyways.
+            # TODO: is there still a way to plot a low-dimensional representation of the free polytopes, given a 4-d partitioning of the space?
+            if self.n_dims == 2:
+                poly_center = np.mean(vertices_i, axis=1)
+                thetas = np.arctan2(vertices_i[1, :] - poly_center[1], vertices_i[0, :] - poly_center[0])
+                vertices_i = vertices_i[:, np.argsort(thetas)]
+
+            # Remove mesh points in current poly from future searches. 
+            mesh_in_poly = np.any(A_i @ mesh_points - b_i > -1e-5, axis=0)
+            mesh_points = mesh_points[:, mesh_in_poly]
+            
+            obs_and_poly_points = np.hstack([obs_and_poly_points, vertices_i])
+            dists_i = distance.cdist(mesh_points.T, obs_and_poly_points.T)
+            i_furthest = np.argmax(np.amin(dists_i, axis=1))
+            next_seed_posn = mesh_points[:, i_furthest]
 
             polys_list.append(Polytope(A_i, b_i, vertices_i))
 

@@ -5,6 +5,7 @@ from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import cvxpy as cp
 import numpy as np
+from pyinstrument import Profiler
 
 from .path_planner import Agent, AgentPaths, Goal, PathPlanner
 from ..omap import OMap
@@ -29,6 +30,9 @@ class GCS(PathPlanner):
         goals: Dict[Agent, List[Goal]],
         override_starting_pos: None | Dict[Agent, Point] = None,
     ) -> AgentPaths:  # pyright: ignore[reportGeneralTypeIssues]
+
+        profiler = Profiler()
+        profiler.start()
 
         # Example scene
         obs_cube1 = np.array([
@@ -61,7 +65,7 @@ class GCS(PathPlanner):
 
         obs = [obs_cube1, obs_cube2, r_wall, t_wall, l_wall, b_wall]
 
-        polys = FreespacePolytopes(obs)
+        polys = FreespacePolytopes(obs, n_regions=10)
 
         fig = go.Figure()
         plot_obs(obs, fig=fig)
@@ -71,14 +75,17 @@ class GCS(PathPlanner):
 
         fig.update_layout(yaxis_scaleanchor="x")
 
-        graph_of_convex_sets = GraphOfConvexSets(polys)
-        x_opt = graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
-        fig.add_trace(go.Scatter(
-            x=x_opt[0, :],
-            y=x_opt[1, :],
-            line=dict(color="darkred"),
-            name="Shortest Path"
-        ))
+        # graph_of_convex_sets = GraphOfConvexSets(polys)
+        # x_opt = graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
+        # fig.add_trace(go.Scatter(
+        #     x=x_opt[0, :],
+        #     y=x_opt[1, :],
+        #     line=dict(color="darkred"),
+        #     name="Shortest Path"
+        # ))
 
         fig.show()
+
+        profiler.stop()
+        profiler.print()
         return None

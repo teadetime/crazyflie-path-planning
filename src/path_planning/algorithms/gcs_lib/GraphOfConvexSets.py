@@ -29,7 +29,7 @@ class GraphOfConvexSets:
                     
                 # Check if any vertices of this polygon_j overlaps with polygon_i
                 # Note we use 1e-5 here because sometimes an overlapping polytope's vertex is on the edge of the polytope it overlaps.
-                verts_overlapping = np.max(poly_j.A @ poly_i.vertices.T - poly_j.b, axis=0) <= 1e-5
+                verts_overlapping = np.max(poly_j.A @ poly_i.vertices - poly_j.b, axis=0) <= 1e-5
                 overlapping = np.any(verts_overlapping) # If any vertex overlaps with the current polytope, then there is overlap.
                 if overlapping:
                     # Set connection to 1 in adjacency matrix
