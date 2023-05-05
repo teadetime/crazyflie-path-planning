@@ -39,13 +39,23 @@ class FreespacePolytopes(list):
         self._validate_dims()
         return self.obstacles[0].shape[0]
 
-    def _find_closest_point_to_ellipse(self, C, d, points):
+    def _find_closest_point_to_ellipse(self, C, d, vertices):
+        """Given a list of vertices that define a poly, find point in poly closest to ellipse
+
+        Args:
+            C (np.ndarray): Ellipse matrix
+            d (np.ndarray): Ellipse center point
+            points (np.ndarray): list of points to search through
+
+        Returns:
+            np.ndarray: the closest point to the ellipse
+        """
         # Transform obstacle points from world frame into world-space into ball-space
-        obs_j_ball_space = np.linalg.inv(C) @ (points - d)
+        obs_j_ball_space = np.linalg.inv(C) @ (vertices - d)
         
         # Find closest point in ball-space
         x_tilde = cp.Variable((self.n_dims, 1))
-        w = cp.Variable((points.shape[1], 1), nonneg=True)
+        w = cp.Variable((vertices.shape[1], 1), nonneg=True)
         obj = cp.Minimize(cp.sum_squares(x_tilde)) # Find point which is closest to origin
         constr = [obs_j_ball_space @ w == x_tilde, cp.sum(w) == 1] # Constrain x to inside of obstacle via convex combination of vertices
         prob = cp.Problem(obj, constr)
@@ -56,25 +66,38 @@ class FreespacePolytopes(list):
         return x_star_j
 
     def _find_hyperplanes(self, C, d):
+        # Step 1: Order all obstacles by distance of closest vertex to ellipse, shortest first.
+        min_dists = np.array([np.min(np.linalg.norm(obs_i - d, axis=0)) for obs_i in self.obstacles])
+        i_sort_obs_by_dist = np.argsort(min_dists).astype(np.int_)
         
-        # For each obstacle, find the point on its boundary which is closest to the origin
-        # by solving the quadratic program defined in Eqn.4 in Deits 2014
-        # Note that x_tilde is in ball-space!
-        n_obs = len(self.obstacles)
-        A = np.zeros((n_obs, self.n_dims))
-        b = np.zeros((n_obs, 1))
-        
-        # TODO: This can be optimized by checking at the end of each step if there are other obstacles separated by the 
-        # the new plane, and then ignoring them in future steps. That will drastically reduce the number of bounding planes many of the polytopes.
-        # TODO: This can be optimized by starting with the obstacle closest to the ellipse, working outward
-        for j, obs_j in enumerate(self.obstacles):
-            x_star_j = self._find_closest_point_to_ellipse(C, d, obs_j)
+        obs_remaining = [self.obstacles[i] for i in i_sort_obs_by_dist]
+        A = []
+        b = []
+        while obs_remaining:
+            obs_closest = obs_remaining[0]
+            x_star_j = self._find_closest_point_to_ellipse(C, d, obs_closest)
 
-            # Step 1b: Find a and b defining the plane tangent to ellipse which passes through x_star
-            # Eqn 6 of Deits 2014
+            # Compute plane tangent to ellipse and passing through point
+            # Deits et al 2014 Equation 6 and 7
             C_inv = np.linalg.inv(C)
-            A[j, :] = (2 * C_inv @ C_inv.T @ (x_star_j - d)).T
-            b[j] = A[j,:] @ x_star_j
+            a_i = (2 * C_inv @ C_inv.T @ (x_star_j - d)).T
+            b_i = a_i @ x_star_j
+
+            i_obs_to_exclude = []
+            for i, obs in enumerate(obs_remaining):
+                # Check if any further obstacles are also excluded by this plane
+                if np.all(a_i @ obs >= b_i):
+                    i_obs_to_exclude.append(i)
+            
+            # Remove the redundant obstacles
+            i_obs_to_exclude = frozenset(i_obs_to_exclude)
+            obs_remaining = [obs for i, obs in enumerate(obs_remaining) if i not in i_obs_to_exclude]
+
+            A.append(a_i.flatten())
+            b.append(b_i.flatten())
+
+        A = np.array(A)
+        b = np.array(b)
         return A, b
 
     def _maximize_ellipsoid(self, A, b):
