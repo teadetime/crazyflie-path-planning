@@ -42,6 +42,7 @@ build-backend = "poetry.core.masonry.api"
 sandbox = "path_planning.sandbox:main"
 sweeps = "path_planning.sweeps_sandbox:main"
 gcs = "path_planning.run_gcs:main"
+gcs_multiagent = "path_planning.run_gcs_multi:main"
 
 
 [tool.pyright]
