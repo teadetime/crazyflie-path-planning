@@ -65,7 +65,7 @@ class GCS(PathPlanner):
 
         obs = [obs_cube1, obs_cube2, r_wall, t_wall, l_wall, b_wall]
 
-        polys = FreespacePolytopes(obs, n_regions=10)
+        polys = FreespacePolytopes(obs, n_regions=5)
 
         fig = go.Figure()
         plot_obs(obs, fig=fig)
@@ -75,14 +75,19 @@ class GCS(PathPlanner):
 
         fig.update_layout(yaxis_scaleanchor="x")
 
-        # graph_of_convex_sets = GraphOfConvexSets(polys)
-        # x_opt = graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
-        # fig.add_trace(go.Scatter(
-        #     x=x_opt[0, :],
-        #     y=x_opt[1, :],
-        #     line=dict(color="darkred"),
-        #     name="Shortest Path"
-        # ))
+        try:
+            graph_of_convex_sets = GraphOfConvexSets(polys)
+            x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
+            fig.add_trace(go.Scatter(
+                x=x_opt[0, :],
+                y=x_opt[1, :],
+                line=dict(color="darkred"),
+                name="Shortest Path",
+                text=[f"Zone: {v}" for v in vertices_opt]
+            ))
+        except Exception as e:
+            import traceback
+            traceback.print_exception(e)
 
         fig.show()
 

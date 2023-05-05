@@ -69,7 +69,8 @@ class GraphOfConvexSets:
         return edges_in, edges_out
 
     def _solve_gcs_perspective(self, x_0, x_goal, polys_st, mat_edges_st, s, t):
-        """Solve the shortest-path-on-GCS problem, but reformulated through perspective transforms
+        """Build and solve the shortest-path-on-GCS problem, but reformulated through perspective transforms.
+        - Contains the actual GCS mathematical problem setup and solution.
 
         Args:
             x_0 (np.ndarray): 1d array of start point position
@@ -80,6 +81,10 @@ class GraphOfConvexSets:
         Returns:
             Tuple[np.ndarray, np.ndarray, np.ndarray]: Returns decision variables z, z_prime, and y
         """
+
+        # Define our epsilon based on machine precision epsilon. 100 comes from the drake GCS impl.
+        eps = 100 * np.finfo(float).eps
+        n_decimals = np.round(np.abs(np.log10(eps)))
 
         # Define decision variables
         num_edges = len(mat_edges_st)
@@ -104,8 +109,8 @@ class GraphOfConvexSets:
             cost += cp.perspective(f, ys[e], f_recession) # Eqn 5.5a
             
             # Edge constraint: edge must belong to the perspective cone of the free polytopes
-            constr += [polys_st[u].A @ z[:, e] - cp.vec(ys[e] * polys_st[u].b) <= 0]
-            constr += [polys_st[u].A @ z_prime[:, e] - cp.vec(ys[e] * polys_st[u].b) <= 0] # Eqn 5.5d
+            constr += [polys_st[u].A @ z[:, e] - cp.vec(ys[e] * polys_st[u].b) <= eps]
+            constr += [polys_st[u].A @ z_prime[:, e] - cp.vec(ys[e] * polys_st[u].b) <= eps] # Eqn 5.5d
             
         ## Construct costs and constraints that are per-vertex
         # for i, (A_v, b_v) in enumerate(zip(As_st, bs_st)):
@@ -138,14 +143,14 @@ class GraphOfConvexSets:
                     if mat_edges_st[e_in, 0] == mat_edges_st[e_out, 1]:
                         # Cyclical edge pair detected. Add flow constraint to prevent a cyclical path.
                         flow_diff = y_sum_out - ys[e_in] - ys[e_out] 
-                        constr += [y_sum_out - ys[e_in] - ys[e_out] >= 0]
+                        constr += [y_sum_out - ys[e_in] - ys[e_out] >= -eps]
                         
                         # Spatial flow constraint:
                         # - Mentioned in passing in Appendix A.1, or Line 824 in Drake implementation.
                         # - Not neccessary but gives additional tightness for the convex relaxation - makes solving faster.
                         # - Keep in mind {z, z_prime} in GCS paper is {y, z} in Drake impl.
                         v_spatial_flow = cp.sum(z_prime[:, edges_in], axis=1) - z_prime[:, e_out] - z[:, e_in]
-                        constr += [poly.A @ v_spatial_flow - cp.vec(flow_diff * poly.b) <= 0]
+                        constr += [poly.A @ v_spatial_flow - cp.vec(flow_diff * poly.b) <= eps]
                         
                         
         ## Start/end point constraints
@@ -167,14 +172,21 @@ class GraphOfConvexSets:
         ## Solve the problem!!
         prob = cp.Problem(cp.Minimize(cost), constr)
         prob.solve(solver="SCIP")
+        breakpoint()
+        if prob.status is not None and not prob.status == "optimal":
+            raise RuntimeError("GCS failed to find a solution")
 
-        ys_val = np.array([y.value for y in ys]).flatten().astype(np.bool_)
+        ys_val = np.round(np.array([y.value for y in ys])).astype(np.bool_).flatten()
 
         return z.value, z_prime.value, ys_val
 
 
     def solve(self, x_0: np.ndarray, x_goal: np.ndarray):
-        """Solves the shortest path problem over a graph of convex sets given start and end points
+        """Public-facing wrapper for intializing and postprocessing the GCS shortest-path problem.
+        1. Given start and end points, identify parent polytopes and add vertices/edges
+        2. Solve the problem
+        3. Order the returned vertices into a properly continuous path
+        4. Reconstruct positions x from the optimization variables z and z_prime
 
         Args:
             x_0 (np.ndarray): Start point
@@ -184,11 +196,11 @@ class GraphOfConvexSets:
             np.ndarray: The sequence of points x which form the optimal path
         """
         # Find polytopes (graph nodes) which contain the start and end points
-        s_poly, t_poly = 0, 0
+        s_poly, t_poly = -1, -1
         for i, poly in enumerate(self.polys):
-            if np.all(poly.A @ np.atleast_2d(x_0).T - poly.b <= 0) and (s_poly == 0):
+            if np.all(poly.A @ np.atleast_2d(x_0).T - poly.b <= 0) and (s_poly == -1):
                 s_poly = i
-            if np.all(poly.A @ np.atleast_2d(x_goal).T - poly.b <= 0) and (t_poly == 0):
+            if np.all(poly.A @ np.atleast_2d(x_goal).T - poly.b <= 0) and (t_poly == -1):
                 t_poly = i
 
         # Insert additional start and endpoint nodes into the graph
@@ -251,4 +263,4 @@ class GraphOfConvexSets:
 
         # Select vertex point positions in the correct order, save and return
         x_out = xs[:, v_ordered]
-        return x_out
+        return x_out, v_ordered

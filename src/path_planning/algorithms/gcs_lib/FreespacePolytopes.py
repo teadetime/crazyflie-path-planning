@@ -167,7 +167,7 @@ class FreespacePolytopes(list):
         scale_bounds = 0.8
         min_coords = np.amin(obs_points, axis=1) * scale_bounds
         max_coords = np.amax(obs_points, axis=1) * scale_bounds
-        grid_coords = np.linspace(min_coords, max_coords, 20).T
+        grid_coords = np.linspace(min_coords, max_coords, 100).T
         meshes = np.meshgrid(*grid_coords)
         mesh_points = np.array([mesh.flatten() for mesh in meshes])
 
