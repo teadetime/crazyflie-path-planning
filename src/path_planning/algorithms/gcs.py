@@ -77,7 +77,8 @@ class GCS(PathPlanner):
 
         try:
             graph_of_convex_sets = GraphOfConvexSets(polys)
-            x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
+            # x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
+            x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([-5, -6]), np.array([5, 6]))
             fig.add_trace(go.Scatter(
                 x=x_opt[0, :],
                 y=x_opt[1, :],

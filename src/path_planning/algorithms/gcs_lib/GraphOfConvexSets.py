@@ -90,13 +90,14 @@ class GraphOfConvexSets:
 
         # Define decision variables
         num_edges = len(mat_edges_st)
-        z = cp.Variable((self.polys.n_dims, num_edges))
-        z_prime = cp.Variable((self.polys.n_dims, num_edges))
+        z = cp.Variable((self.polys.n_dims, num_edges), name="z")
+        z_prime = cp.Variable((self.polys.n_dims, num_edges), name="zprime")
         # Unfortunately cp.perspective cannot take elements of a vector for its 's' argument
         # So we have to manually make a list of individual y variables that we feed to cp.perspective one by one.
         ys = []
         for i in range(num_edges):
-            y = cp.Variable(1, boolean=True)
+            y = cp.Variable(1, boolean=True, name=f"y{i}")
+            # y = cp.Variable(1, nonneg=True, name=f"y{i}")
             ys.append(y)
 
         cost = 0
@@ -140,19 +141,19 @@ class GraphOfConvexSets:
             
             # Now forbid all 2-cycles in/out of this vertex. 
             # - See Appendix A.1, or Line 819 in the Drake implementation.
-            for e_out in edges_out:
-                for e_in in edges_in:
-                    if mat_edges_st[e_in, 0] == mat_edges_st[e_out, 1]:
-                        # Cyclical edge pair detected. Add flow constraint to prevent a cyclical path.
-                        flow_diff = y_sum_out - ys[e_in] - ys[e_out] 
-                        constr += [y_sum_out - ys[e_in] - ys[e_out] >= -eps]
+            # for e_out in edges_out:
+            #     for e_in in edges_in:
+            #         if mat_edges_st[e_in, 0] == mat_edges_st[e_out, 1]:
+            #             # Cyclical edge pair detected. Add flow constraint to prevent a cyclical path.
+            #             flow_diff = y_sum_out - ys[e_in] - ys[e_out] 
+            #             constr += [y_sum_out - ys[e_in] - ys[e_out] >= -eps]
                         
-                        # Spatial flow constraint:
-                        # - Mentioned in passing in Appendix A.1, or Line 824 in Drake implementation.
-                        # - Not neccessary but gives additional tightness for the convex relaxation - makes solving faster.
-                        # - Keep in mind {z, z_prime} in GCS paper is {y, z} in Drake impl.
-                        v_spatial_flow = cp.sum(z_prime[:, edges_in], axis=1) - z_prime[:, e_out] - z[:, e_in]
-                        constr += [poly.A @ v_spatial_flow - cp.vec(flow_diff * poly.b) <= eps]
+            #             # Spatial flow constraint:
+            #             # - Mentioned in passing in Appendix A.1, or Line 824 in Drake implementation.
+            #             # - Not neccessary but gives additional tightness for the convex relaxation - makes solving faster.
+            #             # - Keep in mind {z, z_prime} in GCS paper is {y, z} in Drake impl.
+            #             v_spatial_flow = cp.sum(z_prime[:, edges_in], axis=1) - z_prime[:, e_out] - z[:, e_in]
+            #             constr += [poly.A @ v_spatial_flow - cp.vec(flow_diff * poly.b) <= eps]
                         
                         
         ## Start/end point constraints
@@ -171,13 +172,19 @@ class GraphOfConvexSets:
         # Boundary condition 1f in the GCS Control Paper
         constr += [cp.sum(z[:, edges_out_of_s], axis=1) == x_0, cp.sum(z_prime[:, edges_into_t], axis=1) == x_goal]
 
+        # y_sum_total = 0
+        # for y in ys:
+        #     y_sum_total += y
+        # cost += y_sum_total
+
         ## Solve the problem!!
         prob = cp.Problem(cp.Minimize(cost), constr)
-        prob.solve(solver="MOSEK", verbose=True)
+        mosek_params = {"MSK_IPAR_INFEAS_REPORT_AUTO": "MSK_ON"}
+        prob.solve(solver="MOSEK", verbose=True, mosek_params=mosek_params)
         if prob.status is not None and not prob.status == "optimal":
             raise RuntimeError("GCS failed to find a solution")
 
-        ys_val = np.round(np.array([y.value for y in ys])).astype(np.bool_).flatten()
+        ys_val = np.array([y.value for y in ys]).flatten()
 
         return z.value, z_prime.value, ys_val
 
@@ -217,13 +224,38 @@ class GraphOfConvexSets:
         polys_st.extend([polys_st[s_poly], polys_st[t_poly]])
 
         ## Build and solve the mathematical problem!
+        np.set_printoptions(suppress=True)
         z, z_prime, y = self._solve_gcs_perspective(x_0, x_goal, polys_st, mat_edges_st, s, t)
+        print(f"Z:\n{z.T}")
+        print(f"Z prime:\n{z_prime.T}")
+        print(f"y:\n{np.atleast_2d(y).T}")
+
+        ## Reconstruct the point positions x from the flow variables z, z_prime, and y
+        xs = np.zeros((2, len(polys_st)))
+        for i in range(len(polys_st) - 2):
+            _, edges_out = self._get_io_edges(i, mat_edges_st)
+            
+            z_sum = np.sum(z[:, edges_out], axis=1)
+            y_sum = np.sum(y[edges_out])
+            
+            # Eqn. 5.7 
+            x_v = z_sum / y_sum if y_sum > 1e-5 else np.zeros(z_sum.shape) * np.nan
+            xs[:, i] = x_v
+            
+        # Independently reconstruct start and end point positions (Eqn. 5.6)
+        _, edges_out_of_s = self._get_io_edges(s, mat_edges_st)
+        edges_into_t, _ = self._get_io_edges(t, mat_edges_st)
+        xs[:, -2] = np.sum(z[:, edges_out_of_s], axis=1)
+        xs[:, -1] = np.sum(z_prime[:, edges_into_t], axis=1)
+
+        print(f"xs:\n{xs.T}")
         
         ## Reorder the vertices into a sequence following the order of the path
         # For example, e_edges_in_path may be [3, 1, 5]
         # But if edge_3 = [3, 2], edge_1 = [2, 4], and edge_5 = [1, 3]
         # Then the actual path should be [1, 3], [3, 2], [2, 4]
         # So e_edges_ordered = [5, 3, 1].
+        y = np.round(y).astype(np.bool_)
         e_edges_in_path = np.where(y)[0] # Incorrectly ordered list of edge id's (e) for the edges actually in the path
         edges_in_path = mat_edges_st[y, :] # List of the edges themeselves (vertex pairs)
 
@@ -243,24 +275,6 @@ class GraphOfConvexSets:
         edges_ordered = mat_edges_st[e_edges_ordered, :]
         all_vertices_but_last, last_vertex = edges_ordered[:, 0].flatten(), [edges_ordered[-1, 1]]
         v_ordered = np.concatenate([all_vertices_but_last, last_vertex])
-
-        ## Reconstruct the point positions x from the flow variables z, z_prime, and y
-        xs = np.zeros((2, len(polys_st)))
-        for i in range(len(polys_st) - 2):
-            _, edges_out = self._get_io_edges(i, mat_edges_st)
-            
-            z_sum = np.sum(z[:, edges_out], axis=1)
-            y_sum = np.sum(y[edges_out])
-            
-            # Eqn. 5.7 
-            x_v = z_sum / y_sum if y_sum > 1e-5 else np.zeros(z_sum.shape) * np.nan
-            xs[:, i] = x_v
-            
-        # Independently reconstruct start and end point positions (Eqn. 5.6)
-        _, edges_out_of_s = self._get_io_edges(s, mat_edges_st)
-        edges_into_t, _ = self._get_io_edges(t, mat_edges_st)
-        xs[:, -2] = np.sum(z[:, edges_out_of_s], axis=1)
-        xs[:, -1] = np.sum(z_prime[:, edges_into_t], axis=1)
 
         # Select vertex point positions in the correct order, save and return
         x_out = xs[:, v_ordered]

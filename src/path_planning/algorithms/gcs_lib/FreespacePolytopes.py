@@ -126,8 +126,11 @@ class FreespacePolytopes(list):
         
         prob = cp.Problem(obj, constr)
         try:
-            prob.solve(solver="MOSEK")
+            # prob.solve(solver="MOSEK")
+            prob.solve("SCS")
         except Exception as e:
+            import traceback
+            traceback.print_exception(e)
             breakpoint()
         
         return C.value, d.value
@@ -166,10 +169,12 @@ class FreespacePolytopes(list):
             bs: list of b vectors
         """
         ## Create freespace polytope search seed-points using heuristic described in Deits et al 2015 II.A
-        # Create a coarse grid across the space
+        # Create list of obstacle points, additionally with points at their centroids. We want to build away from these.
         obs_points = np.hstack([obs for obs in self.obstacles])
         mid_points = np.array([np.mean(obs, axis=1) for obs in self.obstacles]).T
-        obs_points = np.concatenate([obs_points, mid_points], axis=1)
+        obs_points = np.concatenate([obs_points, mid_points], axis=1) # This works really well, but disable right now for debug purposes
+
+        # Create a coarse grid across the space
         scale_bounds = 0.8
         min_coords = np.amin(obs_points, axis=1) * scale_bounds
         max_coords = np.amax(obs_points, axis=1) * scale_bounds
@@ -177,6 +182,7 @@ class FreespacePolytopes(list):
         meshes = np.meshgrid(*grid_coords)
         mesh_points = np.array([mesh.flatten() for mesh in meshes])
 
+        # Find the mesh point which maximizes distance from obstacles
         dists = distance.cdist(mesh_points.T, obs_points.T)
         i_furthest = np.argmax(np.amin(dists, axis=1))
 
