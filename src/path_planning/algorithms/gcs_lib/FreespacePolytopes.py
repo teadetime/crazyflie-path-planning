@@ -1,5 +1,6 @@
 from typing import List
 from dataclasses import dataclass
+import warnings
 
 import numpy as np
 import cvxpy as cp
@@ -167,15 +168,14 @@ class FreespacePolytopes(list):
         scale_bounds = 0.8
         min_coords = np.amin(obs_points, axis=1) * scale_bounds
         max_coords = np.amax(obs_points, axis=1) * scale_bounds
-        grid_coords = np.linspace(min_coords, max_coords, 100).T
+        grid_coords = np.linspace(min_coords, max_coords, 5).T
         meshes = np.meshgrid(*grid_coords)
         mesh_points = np.array([mesh.flatten() for mesh in meshes])
 
         dists = distance.cdist(mesh_points.T, obs_points.T)
-        i_furthest_from_obs = np.argmax(np.amin(dists, axis=1))
+        i_furthest = np.argmax(np.amin(dists, axis=1))
 
-        next_seed_posn = mesh_points[:, i_furthest_from_obs]
-        obs_and_poly_points = obs_points.copy()
+        next_seed_posn = mesh_points[:, i_furthest]
 
         polys_list = []
         for i in range(n_regions):
@@ -183,11 +183,20 @@ class FreespacePolytopes(list):
             # Find the polytope given the current start position!
             A_i, b_i, d_i = self._find_poly(next_seed_posn)
 
+            if np.isclose(np.linalg.norm(A_i), 0):
+                warnings.warn(f"Warning: Skipping invalid seed point {next_seed_posn}")
+                # We failed to find a poly, probably because the point is inside of an obstacle
+                # Let's take out this current mesh point and try another one.
+                mesh_points = np.delete(mesh_points, i_furthest, 1)
+                dists = distance.cdist(mesh_points.T, obs_points.T)
+                i_furthest = np.argmax(np.amin(dists, axis=1))
+                next_seed_posn = mesh_points[:, i_furthest]
+                continue
+
             # Find vertices of the polytope given the separating planes
             try:
                 vertices_i = HalfspaceIntersection(np.hstack([A_i, -b_i]), d_i.flatten()).intersections.T
             except:
-                import warnings
                 warnings.warn("Warning: prematurely terminating polytope search as invalid polytope was returned")
                 warnings.warn(f"Seed point: {next_seed_posn}, A_i: {A_i}, b_i: {b_i}")
                 break
@@ -205,9 +214,9 @@ class FreespacePolytopes(list):
             mesh_in_poly = np.any(A_i @ mesh_points - b_i > -1e-5, axis=0)
             mesh_points = mesh_points[:, mesh_in_poly]
             
-            obs_and_poly_points = np.hstack([obs_and_poly_points, vertices_i])
-            dists_i = distance.cdist(mesh_points.T, obs_and_poly_points.T)
-            i_furthest = np.argmax(np.amin(dists_i, axis=1))
+            obs_points = np.hstack([obs_points, vertices_i])
+            dists = distance.cdist(mesh_points.T, obs_points.T)
+            i_furthest = np.argmax(np.amin(dists, axis=1))
             next_seed_posn = mesh_points[:, i_furthest]
 
             polys_list.append(Polytope(A_i, b_i, vertices_i))

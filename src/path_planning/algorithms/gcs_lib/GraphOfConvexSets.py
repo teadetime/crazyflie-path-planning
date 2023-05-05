@@ -172,7 +172,6 @@ class GraphOfConvexSets:
         ## Solve the problem!!
         prob = cp.Problem(cp.Minimize(cost), constr)
         prob.solve(solver="SCIP")
-        breakpoint()
         if prob.status is not None and not prob.status == "optimal":
             raise RuntimeError("GCS failed to find a solution")
 
