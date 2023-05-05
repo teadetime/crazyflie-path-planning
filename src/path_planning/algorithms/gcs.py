@@ -51,12 +51,24 @@ class GCS(PathPlanner):
         obs_cube2 = GCS.make_rect([1, 1], [3.5, 4.5], 0)
         r_wall = GCS.make_rect([0.5, 14], [7.25, 0], 0)
         t_wall = GCS.make_rect([14, 0.5], [0, 7.25], 0)
-
+        
         l_wall = np.diag([-1, 1]) @ r_wall
         b_wall = np.diag([1, -1]) @ t_wall
 
         obs = [obs_cube1, obs_cube2, r_wall, t_wall, l_wall, b_wall]
-        polys = FreespacePolytopes(obs, n_regions=5, grid_dims=100)
+
+        # Generate random obstacles
+        dim_range = 3
+        pos_range = 6
+        n_obs = 10
+        np.random.seed(10)
+        for i in range(n_obs):
+            obs_dims = 2*dim_range * (np.random.rand(2) - 0.5)
+            obs_posns = 2*pos_range * (np.random.rand(2) - 0.5)
+            theta = (np.random.rand(1)[0] - 0.5) * 360
+            obs.append(GCS.make_rect(obs_dims, obs_posns, theta))
+
+        polys = FreespacePolytopes(obs, n_regions=10, grid_dims=100)
 
         fig = go.Figure()
         plot_obs(obs, fig=fig)
@@ -69,7 +81,7 @@ class GCS(PathPlanner):
         try:
             graph_of_convex_sets = GraphOfConvexSets(polys)
             # x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
-            x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([-5, -6]), np.array([5, 6]))
+            x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([-5, 6]), np.array([5, 6]))
             fig.add_trace(go.Scatter(
                 x=x_opt[0, :],
                 y=x_opt[1, :],
