@@ -76,12 +76,12 @@ class GCS(PathPlanner):
         colors = px.colors.qualitative.Plotly[0:len(polys)]
         plot_zones(polys, colors, fig=fig)
 
-        fig.update_layout(yaxis_scaleanchor="x")
+        fig.update_layout(yaxis_scaleanchor="x", height=800, width=800)
 
         try:
             graph_of_convex_sets = GraphOfConvexSets(polys)
             # x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([0, -5]), np.array([0, 5]))
-            x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([-5, 6]), np.array([5, 6]))
+            x_opt, vertices_opt = graph_of_convex_sets.solve(np.array([-3.5, 5]), np.array([5.5, -3]))
             fig.add_trace(go.Scatter(
                 x=x_opt[0, :],
                 y=x_opt[1, :],

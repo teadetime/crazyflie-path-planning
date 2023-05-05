@@ -194,8 +194,7 @@ class FreespacePolytopes(list):
             # Find the polytope given the current start position!
             A_i, b_i, d_i = self._find_poly(next_seed_posn)
 
-            if np.isclose(np.linalg.norm(A_i), 0):
-                self._find_poly(next_seed_posn)
+            if np.linalg.matrix_rank(A_i) < self.n_dims:
                 warnings.warn(f"Warning: Skipping invalid seed point {next_seed_posn}")
                 # We failed to find a poly, probably because the point is inside of an obstacle
                 # Let's take out this current mesh point and try another one.
@@ -209,9 +208,7 @@ class FreespacePolytopes(list):
             try:
                 vertices_i = HalfspaceIntersection(np.hstack([A_i, -b_i]), d_i.flatten()).intersections.T
             except:
-                warnings.warn("Warning: prematurely terminating polytope search as invalid polytope was returned")
-                warnings.warn(f"Seed point: {next_seed_posn}, A_i: {A_i}, b_i: {b_i}")
-                break
+                raise RuntimeError("Bad polytope solution did not get caught earlier in the process! I don't want to handle it here.") 
 
             # If in 2D: reorder the halfspace intersection points by their polar angle
             # - This way we make sure we're always plotting the points going around the perimeter

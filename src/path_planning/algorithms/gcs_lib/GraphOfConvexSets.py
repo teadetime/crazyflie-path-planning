@@ -66,7 +66,7 @@ class GraphOfConvexSets:
         edges_out = np.where(edges[:, 0] == v)[0] # Edges that begin with our vertex are going out
         
         if (not np.any(edges_in)) and (not np.any(edges_out)):
-            raise ValueError("Neither incoming nor outgoing edges found for specified node")
+            raise ValueError(f"Neither incoming nor outgoing edges found for node {v} in the following edges:\n{edges}")
         
         return edges_in, edges_out
 
