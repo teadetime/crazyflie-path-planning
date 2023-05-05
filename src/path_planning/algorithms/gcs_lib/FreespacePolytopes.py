@@ -21,9 +21,9 @@ class FreespacePolytopes(list):
 
     obstacles: List[np.ndarray]
 
-    def __init__(self, obstacles: List[np.ndarray], n_regions=10):
+    def __init__(self, obstacles: List[np.ndarray], n_regions=10, grid_dims=10):
         self.obstacles = obstacles
-        polys_list = self._convex_freespace_decomp(n_regions)
+        polys_list = self._convex_freespace_decomp(n_regions, grid_dims)
         
         # Pass the list of Polytopes to the Python list parent class data storage
         super(FreespacePolytopes, self).__init__(polys_list)
@@ -84,7 +84,7 @@ class FreespacePolytopes(list):
             a_i = (2 * C_inv @ C_inv.T @ (x_star_j - d)).T
             b_i = a_i @ x_star_j
 
-            i_obs_to_exclude = []
+            i_obs_to_exclude = [0]
             for i, obs in enumerate(obs_remaining):
                 # Check if any further obstacles are also excluded by this plane
                 if np.all(a_i @ obs - b_i >= -1e-5):
@@ -125,7 +125,10 @@ class FreespacePolytopes(list):
             constr += [cp.norm(a @ C) + a @ d <= b[i]]
         
         prob = cp.Problem(obj, constr)
-        prob.solve()
+        try:
+            prob.solve(solver="MOSEK")
+        except Exception as e:
+            breakpoint()
         
         return C.value, d.value
 
@@ -155,7 +158,7 @@ class FreespacePolytopes(list):
         
         return A, b, d
     
-    def _convex_freespace_decomp(self, n_regions) -> List[Polytope]:
+    def _convex_freespace_decomp(self, n_regions, grid_dims) -> List[Polytope]:
         """Decompose the overall obstacle space into individual convex regions.
 
         Returns:
@@ -165,10 +168,12 @@ class FreespacePolytopes(list):
         ## Create freespace polytope search seed-points using heuristic described in Deits et al 2015 II.A
         # Create a coarse grid across the space
         obs_points = np.hstack([obs for obs in self.obstacles])
+        mid_points = np.array([np.mean(obs, axis=1) for obs in self.obstacles]).T
+        obs_points = np.concatenate([obs_points, mid_points], axis=1)
         scale_bounds = 0.8
         min_coords = np.amin(obs_points, axis=1) * scale_bounds
         max_coords = np.amax(obs_points, axis=1) * scale_bounds
-        grid_coords = np.linspace(min_coords, max_coords, 5).T
+        grid_coords = np.linspace(min_coords, max_coords, grid_dims).T
         meshes = np.meshgrid(*grid_coords)
         mesh_points = np.array([mesh.flatten() for mesh in meshes])
 
@@ -184,6 +189,7 @@ class FreespacePolytopes(list):
             A_i, b_i, d_i = self._find_poly(next_seed_posn)
 
             if np.isclose(np.linalg.norm(A_i), 0):
+                self._find_poly(next_seed_posn)
                 warnings.warn(f"Warning: Skipping invalid seed point {next_seed_posn}")
                 # We failed to find a poly, probably because the point is inside of an obstacle
                 # Let's take out this current mesh point and try another one.

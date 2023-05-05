@@ -65,7 +65,7 @@ class GCS(PathPlanner):
 
         obs = [obs_cube1, obs_cube2, r_wall, t_wall, l_wall, b_wall]
 
-        polys = FreespacePolytopes(obs, n_regions=5)
+        polys = FreespacePolytopes(obs, n_regions=5, grid_dims=100)
 
         fig = go.Figure()
         plot_obs(obs, fig=fig)

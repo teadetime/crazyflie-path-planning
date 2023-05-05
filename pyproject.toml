@@ -19,6 +19,7 @@ pyscipopt = "^4.3.0"
 cvxpy = {git = "https://github.com/wfan19/cvxpy.git", rev = "perspective_s_eq_0"}
 pandas = "^2.0.1"
 pyinstrument = "^4.4.0"
+mosek = "^10.0.43"
 
 
 [tool.poetry.group.dev.dependencies]

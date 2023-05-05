@@ -1762,6 +1762,35 @@ files = [
 ]
 
 [[package]]
+name = "mosek"
+version = "10.0.43"
+description = "Python API for Mosek"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "Mosek-10.0.43-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:bfee03c97cccf24e2a646d3512d863e4c160b303455e824760a50436b4c8d6f5"},
+    {file = "Mosek-10.0.43-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:0606dea12334a928f12dd25a3d3ce75bf9e407018fe225b31b03eef83af9bd8a"},
+    {file = "Mosek-10.0.43-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:313a6693eb9043e7d4673671e2ff01a9b77d5b16fc81e97ab1de6479c2138a13"},
+    {file = "Mosek-10.0.43-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:9080398be5a50674b3032bce539c20ee9868f00affa6f3297149949115ed1928"},
+    {file = "Mosek-10.0.43-cp310-cp310-win_amd64.whl", hash = "sha256:7f1747fd1e40cefbc1dc467e2fdc700d7aa80cfb27833860b9287424c2aed512"},
+    {file = "Mosek-10.0.43-cp37-cp37m-macosx_10_15_x86_64.whl", hash = "sha256:53dec49f00c378dec0df7a6358aacd6ce1f4020476fddd6d7b28769d290952a7"},
+    {file = "Mosek-10.0.43-cp37-cp37m-manylinux2014_aarch64.whl", hash = "sha256:7491fcb7237cfc19c06ecd02393baf28563cd39eedc11f7c417e0c4e050fb14e"},
+    {file = "Mosek-10.0.43-cp37-cp37m-manylinux2014_x86_64.whl", hash = "sha256:0336c1ff595158f6ef481492123496f406f96f92bfa0b4b413544562331da797"},
+    {file = "Mosek-10.0.43-cp37-cp37m-win_amd64.whl", hash = "sha256:041643c52881b7695752b09df67ba572755e71b2de53aad5970217b6f6c32051"},
+    {file = "Mosek-10.0.43-cp38-cp38-macosx_10_15_x86_64.whl", hash = "sha256:0c5d096c17a2a960f4ead794933d4e684be571f1dc367edeb8eba2295c91ae23"},
+    {file = "Mosek-10.0.43-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:8932530f3ae60e922d8de50eb41ba1be8301eb11051fc4ca66901c6eacbf14cd"},
+    {file = "Mosek-10.0.43-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:0979ae821e32f7923b16229acba6967be4c670a2e7621eca5abe8e292f7e0675"},
+    {file = "Mosek-10.0.43-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:41e94daa11ce05e91a11ee51ba3862f9498b4e7f29907e3979e1469c345710a7"},
+    {file = "Mosek-10.0.43-cp38-cp38-win_amd64.whl", hash = "sha256:a8bfea04f9c8ba45d2c8137dc7044ee72819c59d7b39edc38108286e9b63ddf9"},
+    {file = "Mosek-10.0.43-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:e9b026542e1cdf38fd6bdf16b1d8877d8a51f8cb551982b37dd31b14123c0ecb"},
+    {file = "Mosek-10.0.43-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:2c36f085c45b5c47956d42a4ea7bc0235dde6bdd4a5f5172642602ec70b63b58"},
+    {file = "Mosek-10.0.43-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:9bbafb3f1d012bc73855b8020042905a0642b7ec312cea04929d99c5f8b15473"},
+    {file = "Mosek-10.0.43-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:ebd22a7f6225a86c2bf67d09f0792de522a76e6399b39013c4df8f539798cf9d"},
+    {file = "Mosek-10.0.43-cp39-cp39-win_amd64.whl", hash = "sha256:0ec17935a6438f1b12753f9c628287d090b7c68f5e42fba10978b29a97c10249"},
+]
+
+[[package]]
 name = "mypy-extensions"
 version = "1.0.0"
 description = "Type system extensions for programs checked with the mypy type checker."
@@ -3567,4 +3596,4 @@ test = ["mypy", "pre-commit", "pytest", "pytest-asyncio", "websockets (>=10.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "e753aaafb68fdead8eaa9fa49311f09f1f0e647c2aece7f0e572a9aa85b6768f"
+content-hash = "2f88dc4b6e72dfa7b713e5e766c7a5fb1bbc44313c97e942898aff04f3b90e1a"

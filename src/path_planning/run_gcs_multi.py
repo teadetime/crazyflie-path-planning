@@ -77,7 +77,10 @@ def main():
     obs = [obs_cube1, obs_cube2, r_wall, t_wall, l_wall, b_wall]
 
     obs_config_space = make_obs_for_joint_config_space(obs, 2)
-    polys = FreespacePolytopes(obs_config_space)
+    polys = FreespacePolytopes(obs_config_space, n_regions=7, grid_dims=20)
+
+    gcs = GraphOfConvexSets(polys)
+    soln = gcs.solve(np.array([0, -5, -3, -2]), np.array([0, 5, 3, 2]))
 
     profiler.stop()
     profiler.print()

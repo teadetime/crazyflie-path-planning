@@ -10,10 +10,11 @@ class GraphOfConvexSets:
 
     polys: FreespacePolytopes
     mat_edges: np.ndarray
+    mat_graph_adj: np.ndarray
 
     def __init__(self, polys: FreespacePolytopes):
         self.polys = polys
-        self.mat_edges = self._get_mat_edges(polys)
+        self.mat_edges, self.mat_graph_adj = self._get_mat_edges(polys)
             
     @staticmethod
     def _get_mat_edges(polys: FreespacePolytopes):
@@ -34,6 +35,7 @@ class GraphOfConvexSets:
                 if overlapping:
                     # Set connection to 1 in adjacency matrix
                     mat_graph_adj[i, j] = 1
+                    mat_graph_adj[j, i] = 1
                     
         # Build the list of edges from the adjacency matrix
         mat_edges = []
@@ -42,7 +44,7 @@ class GraphOfConvexSets:
                 if target_edge > 0:
                     mat_edges.append(np.array([i, j]))
         mat_edges = np.array(mat_edges)
-        return mat_edges
+        return mat_edges, mat_graph_adj
 
     ## Helper functions for building the optimization problem
     # Get the set of incoming and outgoing edges for a given vertex v
@@ -171,7 +173,7 @@ class GraphOfConvexSets:
 
         ## Solve the problem!!
         prob = cp.Problem(cp.Minimize(cost), constr)
-        prob.solve(solver="SCIP")
+        prob.solve(solver="MOSEK", verbose=True)
         if prob.status is not None and not prob.status == "optimal":
             raise RuntimeError("GCS failed to find a solution")
 
