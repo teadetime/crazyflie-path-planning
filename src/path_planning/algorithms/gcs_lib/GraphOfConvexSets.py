@@ -137,23 +137,31 @@ class GraphOfConvexSets:
             # - GCS Control paper (Motion Planning around Obstacles with Convex Optimization) Appendix A.1
             # - Constrain all nodes to only have one output
             # - Example implementation: https://github.com/RobotLocomotion/drake/blob/386ef0b4985ee636777324f4dab94e0141aca832/geometry/optimization/graph_of_convex_sets.cc#L798
+            # This constraint should be made redundant by the 2-cycle checks below but instead it appears neccessary.
+            # This may be a sign that the 2-cycle constraints below are now working properly.
             constr += [y_sum_out <= 1]
             
             # Now forbid all 2-cycles in/out of this vertex. 
             # - See Appendix A.1, or Line 819 in the Drake implementation.
-            # for e_out in edges_out:
-            #     for e_in in edges_in:
-            #         if mat_edges_st[e_in, 0] == mat_edges_st[e_out, 1]:
-            #             # Cyclical edge pair detected. Add flow constraint to prevent a cyclical path.
-            #             flow_diff = y_sum_out - ys[e_in] - ys[e_out] 
-            #             constr += [y_sum_out - ys[e_in] - ys[e_out] >= -eps]
+            # TODO: Is there a redundancy issue here? Do we over-add constraints, both (ij) and (ji)?
+            # NOTE: Introducing this constraint seems overconstrain the system.
+            # - Causes single agent solves to fail, or often choose visibly suboptimal paths
+            # - Probably part of why multiagent solves fail as well.
+
+            for e_out in edges_out:
+                for e_in in edges_in:
+                    if mat_edges_st[e_in, 0] == mat_edges_st[e_out, 1]:
+                        # breakpoint()
+                        # Cyclical edge pair detected. Add flow constraint to prevent a cyclical path.
+                        flow_diff = y_sum_out - ys[e_in] - ys[e_out] 
+                        constr += [flow_diff >= -eps]
                         
-            #             # Spatial flow constraint:
-            #             # - Mentioned in passing in Appendix A.1, or Line 824 in Drake implementation.
-            #             # - Not neccessary but gives additional tightness for the convex relaxation - makes solving faster.
-            #             # - Keep in mind {z, z_prime} in GCS paper is {y, z} in Drake impl.
-            #             v_spatial_flow = cp.sum(z_prime[:, edges_in], axis=1) - z_prime[:, e_out] - z[:, e_in]
-            #             constr += [poly.A @ v_spatial_flow - cp.vec(flow_diff * poly.b) <= eps]
+                        # Spatial flow constraint:
+                        # - Mentioned in passing in Appendix A.1, or Line 824 in Drake implementation.
+                        # - Not neccessary but gives additional tightness for the convex relaxation - makes solving faster.
+                        # - Keep in mind {z, z_prime} in GCS paper is {y, z} in Drake impl.
+                        v_spatial_flow = cp.sum(z_prime[:, edges_in], axis=1) - z_prime[:, e_in] - z[:, e_out]
+                        constr += [poly.A @ v_spatial_flow - cp.vec(flow_diff * poly.b) <= eps]
                         
                         
         ## Start/end point constraints
@@ -184,7 +192,7 @@ class GraphOfConvexSets:
         if prob.status is not None and not prob.status == "optimal":
             raise RuntimeError("GCS failed to find a solution")
 
-        ys_val = np.array([y.value for y in ys]).flatten()
+        ys_val = np.round(np.array([y.value for y in ys])).flatten().astype(np.bool_)
 
         return z.value, z_prime.value, ys_val
 
@@ -255,7 +263,6 @@ class GraphOfConvexSets:
         # But if edge_3 = [3, 2], edge_1 = [2, 4], and edge_5 = [1, 3]
         # Then the actual path should be [1, 3], [3, 2], [2, 4]
         # So e_edges_ordered = [5, 3, 1].
-        y = np.round(y).astype(np.bool_)
         e_edges_in_path = np.where(y)[0] # Incorrectly ordered list of edge id's (e) for the edges actually in the path
         edges_in_path = mat_edges_st[y, :] # List of the edges themeselves (vertex pairs)
 

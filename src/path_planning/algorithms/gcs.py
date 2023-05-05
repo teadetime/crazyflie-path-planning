@@ -23,6 +23,19 @@ class GCS(PathPlanner):
     - Parses our standard library omap, goal, and start positions. 
     - Converts the output of GraphOfConvexSets to AgentPaths
     """
+
+    @staticmethod
+    def make_rect(dims, pos, theta):
+        pos = np.atleast_2d(np.array(pos).flatten()).T
+        theta = np.deg2rad(theta)
+
+        square = 0.5 * np.array([[1, 1], [1, -1], [-1, -1], [-1, 1]]).T
+        rect = np.diag(dims) @ square
+        rotmat = np.array([
+            [np.cos(theta), -np.sin(theta)],
+            [np.sin(theta), np.cos(theta)],
+        ])
+        return rotmat @ rect + pos
     
     @staticmethod
     def generate(  # noqa: C901
@@ -34,37 +47,15 @@ class GCS(PathPlanner):
         profiler = Profiler()
         profiler.start()
 
-        # Example scene
-        obs_cube1 = np.array([
-            [1, 0],
-            [0, 1],
-            [-1, 0],
-            [0, -1],
-        ]).T
-        obs_cube2 = np.array([
-            [3,4],
-            [4,4],
-            [4,5],
-            [3,5],
-        ]).T
-        r_wall = np.array([
-            [7.5, 7],
-            [7, 7],
-            [7, -7],
-            [7.5, -7],
-        ]).T
-        t_wall = np.array([
-            [7, 7.5],
-            [-7, 7.5],
-            [-7, 7],
-            [7, 7],
-        ]).T
+        obs_cube1 = GCS.make_rect([np.sqrt(2), np.sqrt(2)], [0, 0], 45)
+        obs_cube2 = GCS.make_rect([1, 1], [3.5, 4.5], 0)
+        r_wall = GCS.make_rect([0.5, 14], [7.25, 0], 0)
+        t_wall = GCS.make_rect([14, 0.5], [0, 7.25], 0)
 
         l_wall = np.diag([-1, 1]) @ r_wall
         b_wall = np.diag([1, -1]) @ t_wall
 
         obs = [obs_cube1, obs_cube2, r_wall, t_wall, l_wall, b_wall]
-
         polys = FreespacePolytopes(obs, n_regions=5, grid_dims=100)
 
         fig = go.Figure()
