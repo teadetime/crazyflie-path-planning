@@ -39,8 +39,23 @@ class FreespacePolytopes(list):
         self._validate_dims()
         return self.obstacles[0].shape[0]
 
+    def _find_closest_point_to_ellipse(self, C, d, points):
+        # Transform obstacle points from world frame into world-space into ball-space
+        obs_j_ball_space = np.linalg.inv(C) @ (points - d)
+        
+        # Find closest point in ball-space
+        x_tilde = cp.Variable((self.n_dims, 1))
+        w = cp.Variable((points.shape[1], 1), nonneg=True)
+        obj = cp.Minimize(cp.sum_squares(x_tilde)) # Find point which is closest to origin
+        constr = [obs_j_ball_space @ w == x_tilde, cp.sum(w) == 1] # Constrain x to inside of obstacle via convex combination of vertices
+        prob = cp.Problem(obj, constr)
+        prob.solve()
+
+        # Transform the closest point in ball-space back to world space
+        x_star_j = C @ x_tilde.value + d
+        return x_star_j
+
     def _find_hyperplanes(self, C, d):
-        # Step 1: Find separating hyperplanes which will allow further expansion of the ellipse:
         
         # For each obstacle, find the point on its boundary which is closest to the origin
         # by solving the quadratic program defined in Eqn.4 in Deits 2014
@@ -53,19 +68,7 @@ class FreespacePolytopes(list):
         # the new plane, and then ignoring them in future steps. That will drastically reduce the number of bounding planes many of the polytopes.
         # TODO: This can be optimized by starting with the obstacle closest to the ellipse, working outward
         for j, obs_j in enumerate(self.obstacles):
-            # Transform obstacle points from world frame into world-space into ball-space
-            obs_j_ball_space = np.linalg.inv(C) @ (obs_j - d)
-            
-            # Find closest point in ball-space
-            x_tilde = cp.Variable((self.n_dims, 1))
-            w = cp.Variable((obs_j.shape[1], 1), nonneg=True)
-            obj = cp.Minimize(cp.sum_squares(x_tilde)) # Find point which is closest to origin
-            constr = [obs_j_ball_space @ w == x_tilde, cp.sum(w) == 1] # Constrain x to inside of obstacle via convex combination of vertices
-            prob = cp.Problem(obj, constr)
-            prob.solve()
-
-            # Transform the closest point in ball-space back to world space
-            x_star_j = C @ x_tilde.value + d
+            x_star_j = self._find_closest_point_to_ellipse(C, d, obs_j)
 
             # Step 1b: Find a and b defining the plane tangent to ellipse which passes through x_star
             # Eqn 6 of Deits 2014
